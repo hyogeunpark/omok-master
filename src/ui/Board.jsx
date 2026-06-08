@@ -7,7 +7,7 @@ const STONE_R = CELL / 2 - 2;
 
 const STARS = [[3,3],[3,7],[3,11],[7,3],[7,7],[7,11],[11,3],[11,7],[11,11]];
 
-export default function Board({ board, onPlace, lastMove, winningLine, disabled }) {
+export default function Board({ board, onPlace, lastMove, winningLine, disabled, forbiddenCells }) {
   const winSet = winningLine
     ? new Set(winningLine.map(({ row, col }) => `${row},${col}`))
     : null;
@@ -48,6 +48,14 @@ export default function Board({ board, onPlace, lastMove, winningLine, disabled 
             </g>
           );
         }))}
+
+        {/* FR-6: 흑 차례 금수 표시 */}
+        {forbiddenCells?.map(({ row: r, col: c }) => (
+          <g key={`f${r},${c}`}>
+            <line x1={cx(c) - 5} y1={cy(r) - 5} x2={cx(c) + 5} y2={cy(r) + 5} stroke="#e00" strokeWidth={1.5} />
+            <line x1={cx(c) + 5} y1={cy(r) - 5} x2={cx(c) - 5} y2={cy(r) + 5} stroke="#e00" strokeWidth={1.5} />
+          </g>
+        ))}
 
         {!disabled && board.map((row, r) => row.map((cell, c) => {
           if (cell) return null;

@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createGame, placeStone, undoMove } from '../engine/game.js';
 import { getCpuMove } from '../ai/cpu.js';
+import { isForbidden } from '../engine/forbidden.js';
 import Board from './Board.jsx';
 
 function statusMessage(game) {
@@ -16,6 +17,20 @@ export default function Game({ difficulty, onExit }) {
   const pendingRef = useRef(false);
 
   const isCpuTurn = game.status === 'playing' && game.currentTurn === game.cpuColor;
+
+  // FR-6: 흑 차례에만 금수 셀 계산
+  const forbiddenCells = useMemo(() => {
+    if (game.status !== 'playing' || game.currentTurn !== 'B') return [];
+    const cells = [];
+    for (let r = 0; r < 15; r++) {
+      for (let c = 0; c < 15; c++) {
+        if (game.board[r][c] === null && isForbidden(game.board, r, c, 'B')) {
+          cells.push({ row: r, col: c });
+        }
+      }
+    }
+    return cells;
+  }, [game.board, game.status, game.currentTurn]);
   const myColor = game.playerColor === 'B' ? '흑 (선공)' : '백 (후공)';
 
   // CPU 수 처리
@@ -69,6 +84,7 @@ export default function Game({ difficulty, onExit }) {
         lastMove={game.lastMove}
         winningLine={game.winningLine}
         disabled={thinking || game.status !== 'playing' || game.currentTurn !== game.playerColor}
+        forbiddenCells={forbiddenCells}
       />
 
       {/* FR-8: 상태 표시 영역 — 보드 바깥(아래) */}

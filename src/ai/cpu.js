@@ -1,6 +1,7 @@
 // docs/ai.md §2 난이도 정의 기반
 import { BOARD_SIZE, inBounds } from '../engine/board.js';
 import { scorePosition, doubleThreatBonus, getCandidates } from './evaluate.js';
+import { isForbidden } from '../engine/forbidden.js';
 
 // docs/ai.md §2-1 난이도별 파라미터
 const PARAMS = {
@@ -38,7 +39,10 @@ function hasImmediate(board, row, col, color) {
 export function getCpuMove(board, color, difficulty = 'normal') {
   const p = PARAMS[difficulty] ?? PARAMS.normal;
   const opp = color === 'B' ? 'W' : 'B';
-  const candidates = getCandidates(board, p.radius);
+  // Phase 2: 흑일 때 금수 셀 제외
+  const candidates = getCandidates(board, p.radius).filter(({ row, col }) =>
+    !isForbidden(board, row, col, color)
+  );
 
   // easy: 즉시 승리/차단 수를 먼저 찾고, 없으면 랜덤
   if (difficulty === 'easy') {

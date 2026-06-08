@@ -1,7 +1,7 @@
 # Phase 2 — 렌주 금수 (Renju Forbidden Moves)
 
 > 전제: `index.md` §4 공통 규칙 + Phase 1 완료. 본 문서는 흑 금수 규칙을 추가한다.
-> 상태: ⬜ 예정
+> 상태: 🔄 진행 중
 
 ---
 

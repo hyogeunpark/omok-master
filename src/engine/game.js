@@ -1,5 +1,6 @@
 import { emptyBoard } from './board.js';
 import { checkWin, checkDraw, getWinningLine } from './win.js';
+import { isForbidden } from './forbidden.js';
 
 // FR-5: playerColor 미지정 시 무작위 배정
 export function createGame({ playerColor } = {}) {
@@ -21,6 +22,22 @@ export function placeStone(game, row, col) {
   if (game.board[row][col] !== null) return game;
 
   const color = game.currentTurn;
+
+  // Phase 2: 흑 금수 → 반칙패
+  if (isForbidden(game.board, row, col, color)) {
+    const board = game.board.map((r, ri) =>
+      ri === row ? r.map((cell, ci) => (ci === col ? color : cell)) : r
+    );
+    return {
+      ...game,
+      board,
+      history: [...game.history, { row, col, color }],
+      lastMove: { row, col },
+      status: 'white-wins',
+      winningLine: null,
+    };
+  }
+
   const board = game.board.map((r, ri) =>
     ri === row ? r.map((cell, ci) => (ci === col ? color : cell)) : r
   );
