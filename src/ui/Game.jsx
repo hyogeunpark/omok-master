@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { createGame, placeStone, undoMove } from '../engine/game.js';
 import { getCpuMove } from '../ai/cpu.js';
 import Board from './Board.jsx';
-import Controls from './Controls.jsx';
 
 function statusMessage(game) {
   if (game.status === 'draw') return '무승부';
@@ -11,15 +10,15 @@ function statusMessage(game) {
   return null;
 }
 
-export default function Game() {
-  const [game, setGame] = useState(() => createGame({ playerColor: 'B' }));
-  const [difficulty, setDifficulty] = useState('normal');
+export default function Game({ difficulty, onExit }) {
+  const [game, setGame] = useState(() => createGame());
   const [thinking, setThinking] = useState(false);
-  const pendingRef = useRef(false); // ref로 관리 — state 변경 시 cleanup이 타이머를 취소하는 버그 방지
+  const pendingRef = useRef(false);
 
   const isCpuTurn = game.status === 'playing' && game.currentTurn === game.cpuColor;
+  const myColor = game.playerColor === 'B' ? '흑 (선공)' : '백 (후공)';
 
-  // CPU 수 처리 — 300ms 딜레이로 자연스러운 응수 연출
+  // CPU 수 처리
   useEffect(() => {
     if (!isCpuTurn || pendingRef.current) return;
     pendingRef.current = true;
@@ -48,26 +47,22 @@ export default function Game() {
     setGame(g => undoMove(g));
   }, [thinking]);
 
-  const handleNewGame = useCallback((playerColor = game.playerColor) => {
+  const handleNewGame = useCallback(() => {
+    pendingRef.current = false;
     setThinking(false);
-    setGame(createGame({ playerColor }));
-  }, [game.playerColor]);
+    setGame(createGame());
+  }, []);
 
   const msg = statusMessage(game);
+  const canUndo = !thinking && game.history.length >= 2;
 
   return (
     <div className="game">
-      <h1 className="game-title">오목</h1>
-      <Controls
-        game={game}
-        difficulty={difficulty}
-        thinking={thinking}
-        onUndo={handleUndo}
-        onNewGame={() => handleNewGame()}
-        onColorChange={handleNewGame}
-        onDifficultyChange={setDifficulty}
-      />
-      {msg && <div className="result-banner">{msg}</div>}
+      <div className="game-header">
+        <button className="btn-back" onClick={onExit}>← 나가기</button>
+        <span className="my-color-badge">내 색: {myColor}</span>
+      </div>
+
       <Board
         board={game.board}
         onPlace={handlePlace}
@@ -75,6 +70,22 @@ export default function Game() {
         winningLine={game.winningLine}
         disabled={thinking || game.status !== 'playing' || game.currentTurn !== game.playerColor}
       />
+
+      {/* FR-8: 상태 표시 영역 — 보드 바깥(아래) */}
+      <div className="game-status">
+        {thinking && <span className="thinking-indicator">CPU 생각 중…</span>}
+        {msg && <span className="result-text">{msg}</span>}
+        {!thinking && !msg && (
+          <span className="turn-text">
+            {game.currentTurn === game.playerColor ? '내 차례' : 'CPU 차례'}
+          </span>
+        )}
+      </div>
+
+      <div className="game-actions">
+        <button onClick={handleUndo} disabled={!canUndo}>되돌리기</button>
+        <button onClick={handleNewGame}>새 게임</button>
+      </div>
     </div>
   );
 }

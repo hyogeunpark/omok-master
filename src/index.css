@@ -17,18 +17,98 @@ body {
   flex-direction: column;
 }
 
-.game {
+/* ── Start Screen ── */
+.start-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  gap: 24px;
+  padding: 24px;
+}
+
+.start-title {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #ffd700;
+  letter-spacing: 0.15em;
+}
+
+.start-subtitle {
+  font-size: 1rem;
+  color: #aaa;
+}
+
+.difficulty-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  width: 100%;
+  max-width: 280px;
 }
 
-.game-title {
-  text-align: center;
-  font-size: 1.4rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+.difficulty-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 16px 20px;
+  border: 1px solid #444;
+  border-radius: 12px;
+  background: #2a2a3e;
+  color: #eee;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  width: 100%;
+  text-align: left;
+}
+
+.difficulty-card:hover {
+  background: #3a3a5e;
+  border-color: #ffd700;
+}
+
+.difficulty-label {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.difficulty-desc {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+/* ── 게임 컨테이너 ── */
+.game {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.game-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.btn-back {
+  padding: 6px 12px;
+  border: 1px solid #444;
+  border-radius: 6px;
+  background: transparent;
+  color: #aaa;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.btn-back:hover { color: #fff; border-color: #666; }
+
+.my-color-badge {
+  font-size: 0.85rem;
   color: #ffd700;
+  font-weight: 600;
 }
 
 .board-wrapper {
@@ -84,22 +164,36 @@ button:hover:not(:disabled) { background: #3a3a5e; color: #fff; }
 button.active { background: #ffd700; color: #1a1a2e; border-color: #ffd700; font-weight: 600; }
 button:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.result-banner {
+/* ── 게임 상태 표시 (보드 아래, FR-8) ── */
+.game-status {
   text-align: center;
-  font-size: 1.3rem;
-  font-weight: 700;
-  padding: 8px;
-  border-radius: 8px;
-  background: rgba(255, 215, 0, 0.15);
-  border: 1px solid #ffd700;
-  color: #ffd700;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.turn-text {
+  font-size: 0.9rem;
+  color: #888;
 }
 
 .thinking-indicator {
-  font-size: 0.8rem;
-  color: #888;
-  text-align: center;
+  font-size: 0.9rem;
+  color: #aaa;
   animation: pulse 1s ease-in-out infinite;
+}
+
+.result-text {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #ffd700;
+}
+
+.game-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
 }
 
 @keyframes pulse {

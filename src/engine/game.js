@@ -1,12 +1,14 @@
 import { emptyBoard } from './board.js';
 import { checkWin, checkDraw, getWinningLine } from './win.js';
 
-export function createGame({ playerColor = 'B' } = {}) {
+// FR-5: playerColor 미지정 시 무작위 배정
+export function createGame({ playerColor } = {}) {
+  const assigned = playerColor ?? (Math.random() < 0.5 ? 'B' : 'W');
   return {
     board: emptyBoard(),
     currentTurn: 'B', // 흑 항상 선공
-    playerColor,
-    cpuColor: playerColor === 'B' ? 'W' : 'B',
+    playerColor: assigned,
+    cpuColor: assigned === 'B' ? 'W' : 'B',
     status: 'playing', // 'playing' | 'black-wins' | 'white-wins' | 'draw'
     history: [],
     lastMove: null,
