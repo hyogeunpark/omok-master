@@ -1,13 +1,14 @@
-// docs/ai.md §2 난이도 정의 기반
+// docs/spec/ai.md §2 난이도 정의 기반
 import { BOARD_SIZE, inBounds } from '../engine/board.js';
-import { scorePosition, doubleThreatBonus, getCandidates } from './evaluate.js';
+import { scorePosition, doubleThreatBonus, getCandidates, hasImmediate } from './evaluate.js';
 import { isForbidden } from '../engine/forbidden.js';
 import { isInOpeningZone, isCandidateDuplicate } from '../engine/opening.js';
+import { minimaxMove } from './minimax.js';
 
 const PARAMS = {
-  easy:   { radius: 1, attackWeight: 1.0, defenseWeight: 1.0, randomRate: 0.7, doubleTheat: false },
-  normal: { radius: 2, attackWeight: 1.0, defenseWeight: 1.0, randomRate: 0,   doubleTheat: false },
-  hard:   { radius: 2, attackWeight: 1.0, defenseWeight: 1.2, randomRate: 0,   doubleThreat: true },
+  easy:   { radius: 1, attackWeight: 1.0, defenseWeight: 1.0, randomRate: 0.7, doubleThreat: false, depth: 0,  candidateLimit: 0  },
+  normal: { radius: 2, attackWeight: 1.0, defenseWeight: 1.0, randomRate: 0,   doubleThreat: false, depth: 2,  candidateLimit: 10 },
+  hard:   { radius: 2, attackWeight: 1.0, defenseWeight: 1.2, randomRate: 0,   doubleThreat: true,  depth: 4,  candidateLimit: 8  },
 };
 
 function randomEmpty(board) {
@@ -25,22 +26,6 @@ function randomEmptyInZone(board, step, branch) {
       if (board[r][c] === null && isInOpeningZone(r, c, step, branch))
         empty.push({ row: r, col: c });
   return empty.length ? empty[Math.floor(Math.random() * empty.length)] : randomEmpty(board);
-}
-
-function hasImmediate(board, row, col, color) {
-  board[row][col] = color;
-  let win = false;
-  const DIRS = [[0,1],[1,0],[1,1],[1,-1]];
-  for (const [dr, dc] of DIRS) {
-    let cnt = 1;
-    for (const s of [1, -1]) {
-      let r = row + dr * s, c = col + dc * s;
-      while (inBounds(r, c) && board[r][c] === color) { cnt++; r += dr * s; c += dc * s; }
-    }
-    if (cnt >= 5) { win = true; break; }
-  }
-  board[row][col] = null;
-  return win;
 }
 
 // 오프닝 영역 내 최고점 수 선택
@@ -134,11 +119,12 @@ export function cpuPickOpeningCandidate(board, candidates, difficulty) {
 export function getCpuMove(board, color, difficulty = 'normal') {
   const p = PARAMS[difficulty] ?? PARAMS.normal;
   const opp = color === 'B' ? 'W' : 'B';
-  const candidates = getCandidates(board, p.radius).filter(({ row, col }) =>
-    !isForbidden(board, row, col, color)
-  );
 
+  // easy: 즉시 승리/차단 후 랜덤 (docs/spec/ai.md §2)
   if (difficulty === 'easy') {
+    const candidates = getCandidates(board, p.radius).filter(({ row, col }) =>
+      !isForbidden(board, row, col, color)
+    );
     for (const { row, col } of candidates) {
       if (hasImmediate(board, row, col, color)) return { row, col };
     }
@@ -146,14 +132,14 @@ export function getCpuMove(board, color, difficulty = 'normal') {
       if (hasImmediate(board, row, col, opp)) return { row, col };
     }
     if (Math.random() < p.randomRate) return randomEmpty(board);
+    let best = null, bestScore = -Infinity;
+    for (const { row, col } of candidates) {
+      const score = scorePosition(board, row, col, color, p.attackWeight, p.defenseWeight);
+      if (score > bestScore) { bestScore = score; best = { row, col }; }
+    }
+    return best ?? randomEmpty(board);
   }
 
-  let best = null, bestScore = -Infinity;
-  for (const { row, col } of candidates) {
-    let score = scorePosition(board, row, col, color, p.attackWeight, p.defenseWeight);
-    if (p.doubleThreat) score += doubleThreatBonus(board, row, col, color);
-    if (score > bestScore) { bestScore = score; best = { row, col }; }
-  }
-
-  return best ?? randomEmpty(board);
+  // normal/hard: Minimax + Alpha-Beta (docs/spec/ai.md §7)
+  return minimaxMove(board, color, p.depth, p.candidateLimit);
 }

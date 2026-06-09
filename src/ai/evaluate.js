@@ -86,6 +86,41 @@ export function doubleThreatBonus(board, row, col, color) {
   return threatDirs >= 2 ? 5000 : 0;
 }
 
+// 이미 착수된 돌의 패턴 강도 — 4방향 합산 (docs/spec/ai.md §7-1)
+export function cellStrength(board, row, col, color) {
+  let s = 0;
+  for (const [dr, dc] of DIRS) s += dirScore(board, row, col, color, dr, dc);
+  return s;
+}
+
+// Minimax 정적 평가 — 현재 플레이어 기준 (docs/spec/ai.md §7-1)
+export function evaluateBoard(board, color) {
+  const opp = color === 'B' ? 'W' : 'B';
+  let score = 0;
+  for (let r = 0; r < BOARD_SIZE; r++)
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      if (board[r][c] === color) score += cellStrength(board, r, c, color);
+      else if (board[r][c] === opp) score -= cellStrength(board, r, c, opp);
+    }
+  return score;
+}
+
+// 즉시 승리 여부 — (r,c)에 color 착수 시 5목 완성 (docs/spec/ai.md §7-2)
+export function hasImmediate(board, row, col, color) {
+  board[row][col] = color;
+  let win = false;
+  for (const [dr, dc] of DIRS) {
+    let cnt = 1;
+    for (const s of [1, -1]) {
+      let r = row + dr * s, c = col + dc * s;
+      while (inBounds(r, c) && board[r][c] === color) { cnt++; r += dr * s; c += dc * s; }
+    }
+    if (cnt >= 5) { win = true; break; }
+  }
+  board[row][col] = null;
+  return win;
+}
+
 // 후보 셀: 기존 돌 주변 radius 이내 빈 교점 (docs/ai.md §1)
 export function getCandidates(board, radius) {
   const candidates = new Set();

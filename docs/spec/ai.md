@@ -7,10 +7,10 @@
 
 ## 1. 알고리즘 개요
 
-- **방식**: 휴리스틱 위치 평가(Heuristic Position Evaluation).
+- **easy**: 휴리스틱 1-ply (즉시 승리/차단 후 랜덤). 변경 없음.
+- **normal / hard**: Minimax + Alpha-Beta Pruning (Negamax 방식).
 - **후보 셀**: 기존 돌 주변 `SEARCH_RADIUS` 칸 이내의 빈 교점만 탐색 (전체 탐색 금지 — 성능).
-- **선택**: 후보 셀 각각에 대해 점수를 계산하고 최고점 셀을 선택.
-- **구현 위치**: `src/ai/evaluate.js` (평가 함수), `src/ai/cpu.js` (수 선택 진입점).
+- **구현 위치**: `src/ai/evaluate.js` (평가 함수), `src/ai/minimax.js` (탐색), `src/ai/cpu.js` (진입점).
 
 ---
 
@@ -19,14 +19,16 @@
 | 난이도 | 레이블 | 행동 |
 |--------|--------|------|
 | `easy` | 쉬움 | 무작위 수. 단, 즉시 이기는 수(5목)와 즉시 막아야 하는 수(상대 5목)만 우선 처리. |
-| `normal` | 보통 | 휴리스틱 평가로 최선 수 선택. 공격/방어 균형. |
-| `hard` | 어려움 | 휴리스틱 평가 + 이중 위협(double-threat) 감지. 방어 가중치 상향. |
+| `normal` | 보통 | Minimax depth=2. 공격/방어 균형. |
+| `hard` | 어려움 | Minimax depth=4 + 이중 위협(double-threat) 감지. |
 
 ### 2-1. 난이도별 파라미터
 
 | 파라미터 | easy | normal | hard |
 |----------|------|--------|------|
 | `SEARCH_RADIUS` | 1 | 2 | 2 |
+| `depth` | 0 (heuristic) | 2 | 4 |
+| `candidateLimit` | — | 10 | 8 |
 | 공격 가중치 | — | 1.0 | 1.0 |
 | 방어 가중치 | — | 1.0 | 1.2 |
 | 이중 위협 보너스 | 없음 | 없음 | 있음 |
@@ -79,9 +81,50 @@ cellScore(row, col) =
 
 ## 4. 성능 제약
 
-- 보통·어려움 난이도 기준, 수 선택에 **수백 ms 이내** 완료 (`index.md §5`).
-- `SEARCH_RADIUS=2` 기준 후보 셀은 최대 ~100개 수준으로 유지.
-- 미니맥스(Minimax) / 알파-베타 탐색은 **이 문서에 명시될 때까지 도입하지 않는다**.
+- 보통·어려움 난이도 기준, 수 선택에 **500ms 이내** 완료 (`index.md §5`).
+- `SEARCH_RADIUS=2` 기준 후보 셀은 최대 ~100개이나, `candidateLimit`으로 탐색 분기를 제한.
+- 트랜스포지션 테이블 미사용 — 현재 depth 수준에서 불필요.
+
+---
+
+## 7. Minimax 알고리즘 스펙
+
+### 7-1. Negamax + Alpha-Beta
+
+```
+negamax(board, depth, α, β, color):
+  if depth == 0: return evaluateBoard(board, color)
+
+  candidates = getOrderedCandidates(board, color, radius=2, limit=candidateLimit)
+  best = -∞
+  for (r, c) in candidates:
+    place color at (r, c)
+    if checkWin(board, r, c, color): score = WIN_SCORE + depth
+    else: score = -negamax(board, depth-1, -β, -α, opp)
+    restore (r, c)
+    best = max(best, score)
+    α = max(α, best)
+    if α ≥ β: break  // prune
+  return best
+```
+
+- `WIN_SCORE = 100000`. depth 보너스로 빠른 승리를 선호.
+- `evaluateBoard(board, color)` = Σ cellStrength(color) - Σ cellStrength(opp).
+- `cellStrength(board, r, c, color)`: 이미 착수된 돌의 패턴 강도 (4방향 합산).
+
+### 7-2. 수 정렬 (Move Ordering)
+
+효율적인 Alpha-Beta 가지치기를 위해 후보 수를 다음 순서로 정렬:
+
+1. **즉시 승리**: `hasImmediate(board, r, c, color)` — 즉시 반환
+2. **즉시 차단**: `hasImmediate(board, r, c, opp)` — 다음 우선순위
+3. **휴리스틱 정렬**: `scorePosition` 내림차순, 상위 `candidateLimit`개만 탐색
+
+### 7-3. 구현 파일
+
+- `src/ai/evaluate.js`: `hasImmediate`, `cellStrength`, `evaluateBoard` 추가 export
+- `src/ai/minimax.js` (신규): `getOrderedCandidates`, `alphabeta`, `minimaxMove`
+- `src/ai/cpu.js`: normal/hard에서 `minimaxMove` 호출로 변경
 
 ---
 
@@ -125,9 +168,10 @@ swap if swapScore > perStoneThreshold
 
 ---
 
-## 7. 변경 이력
+## 8. 변경 이력
 
 | 날짜 | 내용 |
 |------|------|
 | 2026-06-08 | 최초 작성. |
 | 2026-06-09 | §5 스왑 판단 로직 추가: 돌 수 정규화 + 난이도별 1돌당 threshold. |
+| 2026-06-09 | §7 Minimax 알고리즘 추가: Negamax+Alpha-Beta, depth/candidateLimit 파라미터, 수 정렬 스펙. |
