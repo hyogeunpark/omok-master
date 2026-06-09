@@ -6,7 +6,7 @@ import { isInOpeningZone, isCandidateDuplicate } from '../engine/opening.js';
 import { minimaxMove } from './minimax.js';
 
 const PARAMS = {
-  easy:   { radius: 1, attackWeight: 1.0, defenseWeight: 1.0, randomRate: 0.7, doubleThreat: false, depth: 0,  candidateLimit: 0  },
+  easy:   { radius: 1, attackWeight: 1.0, defenseWeight: 1.0, randomRate: 0.35, doubleThreat: false, depth: 0,  candidateLimit: 0  },
   normal: { radius: 2, attackWeight: 1.0, defenseWeight: 1.0, randomRate: 0,   doubleThreat: false, depth: 2,  candidateLimit: 10 },
   hard:   { radius: 2, attackWeight: 1.0, defenseWeight: 1.2, randomRate: 0,   doubleThreat: true,  depth: 4,  candidateLimit: 8  },
 };
@@ -131,7 +131,13 @@ export function getCpuMove(board, color, difficulty = 'normal') {
     for (const { row, col } of candidates) {
       if (hasImmediate(board, row, col, opp)) return { row, col };
     }
-    if (Math.random() < p.randomRate) return randomEmpty(board);
+    if (Math.random() < p.randomRate) {
+      // 보드 전체가 아닌 주변(반경 3) 에서만 랜덤 선택 (docs/spec/ai.md §2)
+      const near = getCandidates(board, 3).filter(({ row, col }) =>
+        !isForbidden(board, row, col, color)
+      );
+      if (near.length) return near[Math.floor(Math.random() * near.length)];
+    }
     let best = null, bestScore = -Infinity;
     for (const { row, col } of candidates) {
       const score = scorePosition(board, row, col, color, p.attackWeight, p.defenseWeight);
