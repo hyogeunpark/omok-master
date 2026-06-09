@@ -473,15 +473,10 @@ button:disabled { opacity: 0.3; cursor: not-allowed; }
 
 /* ─────────────────────────────────────
    Responsive — Tablet (≥ 600px)
-   보드 높이 제한으로 화면 이탈 방지
 ───────────────────────────────────── */
 @media (min-width: 600px) {
   #root { max-width: 560px; }
-
-  .board-wrapper {
-    max-width: min(100%, calc(100dvh - 180px));
-    margin: 0 auto;
-  }
+  /* 보드는 container 폭 100% 그대로 — dvh 계산 없음 */
 }
 
 /* ─────────────────────────────────────
@@ -489,9 +484,7 @@ button:disabled { opacity: 0.3; cursor: not-allowed; }
    보드 왼쪽, 컨트롤 오른쪽 2-column
 ───────────────────────────────────── */
 @media (min-width: 860px) {
-  #root {
-    max-width: 100%;
-  }
+  #root { max-width: 100%; }
 
   .game {
     flex-direction: row;
@@ -500,13 +493,12 @@ button:disabled { opacity: 0.3; cursor: not-allowed; }
     padding: 32px 48px;
     max-width: 1040px;
     margin: 0 auto;
-    min-height: 100dvh;
-    box-sizing: border-box;
   }
 
+  /* 보드: 고정 폭 — 뷰포트 높이와 무관 */
   .board-wrapper {
-    flex: 0 0 auto;
-    width: min(calc(100dvh - 80px), 600px);
+    flex: 0 0 560px;
+    width: 560px;
     max-width: none;
     margin: 0;
   }
