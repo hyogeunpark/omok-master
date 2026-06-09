@@ -62,21 +62,23 @@ export function getCpuOpeningMove(board, color, step, branch, difficulty = 'norm
   return best;
 }
 
-// 스왑 여부 결정: justPlayedColor의 포석이 강하면 스왑
+// 스왑 여부 결정: justPlayedColor의 포석이 강하면 스왑 (docs/spec/ai.md §5)
 export function cpuShouldSwap(board, justPlayedColor, difficulty) {
-  // 보드 위 justPlayedColor 돌들의 위치 점수 합산
-  let score = 0;
+  if (difficulty === 'easy') return false;
+  let score = 0, stoneCount = 0;
   for (let r = 0; r < BOARD_SIZE; r++) {
     for (let c = 0; c < BOARD_SIZE; c++) {
       if (board[r][c] === justPlayedColor) {
+        stoneCount++;
         board[r][c] = null;
         score += scorePosition(board, r, c, justPlayedColor, 1.0, 0);
         board[r][c] = justPlayedColor;
       }
     }
   }
-  const threshold = difficulty === 'hard' ? 150 : 250;
-  return score > threshold;
+  if (stoneCount === 0) return false;
+  const perStoneThreshold = difficulty === 'hard' ? 22 : 26;
+  return (score / stoneCount) > perStoneThreshold;
 }
 
 // 분기 선택 (선택1 vs 선택2): 현재 포석 강도에 따라 결정

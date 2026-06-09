@@ -85,18 +85,49 @@ cellScore(row, col) =
 
 ---
 
-## 5. Phase별 적용 범위
+## 5. 오프닝 스왑 판단
+
+CPU가 스왑 여부를 결정할 때 `evaluate.js`의 `scorePosition`을 재사용한다.
+
+### 5-1. 스왑 판단 로직
+
+직전에 착수한 색(`justPlayedColor`)의 돌들을 순회하며 각 위치의 공격 점수를 합산한 뒤,
+**돌 수(stoneCount)로 나눠 1돌당 평균 점수**를 구한다. 이를 난이도별 threshold와 비교.
+
+```
+swapScore = Σ scorePosition(board, r, c, justPlayedColor, 1.0, 0) / stoneCount
+swap if swapScore > perStoneThreshold
+```
+
+- `defenseWeight=0`: 상대 색이 아닌 해당 색 자체의 위치 강도만 측정.
+- 돌 수 정규화 이유: 오프닝은 1~2수이므로 절대 총점이 매우 낮아 고정 threshold 사용 불가.
+
+### 5-2. 난이도별 1돌당 threshold
+
+| 난이도 | threshold | 비고 |
+|--------|-----------|------|
+| hard | 22 | 중앙이나 연결된 포석이면 스왑 |
+| normal | 26 | 명확히 좋은 포석일 때만 스왑 |
+| easy | 스왑 안 함 | 랜덤 플레이 |
+
+- 중앙 1수(7,7) 기준 점수 ≈ 28 → hard·normal 모두 스왑.
+- 5×5 외곽 1수 기준 점수 ≈ 24 → hard 스왑, normal 스왑 안 함.
+
+---
+
+## 6. Phase별 적용 범위
 
 | Phase | 적용 규칙 |
 |-------|-----------|
 | Phase 1 | 기본 평가 함수. 금수 없음. |
 | Phase 2 | CPU가 흑일 때 금수 자리를 후보에서 제외 (`isForbidden` 호출). |
-| Phase 3 | 오프닝 스왑 판단에 `evaluate.js` 재사용 (`phase-3.md §5`). |
+| Phase 3 | 오프닝 스왑 판단에 `evaluate.js` 재사용 (§5). |
 
 ---
 
-## 6. 변경 이력
+## 7. 변경 이력
 
 | 날짜 | 내용 |
 |------|------|
 | 2026-06-08 | 최초 작성. |
+| 2026-06-09 | §5 스왑 판단 로직 추가: 돌 수 정규화 + 난이도별 1돌당 threshold. |
