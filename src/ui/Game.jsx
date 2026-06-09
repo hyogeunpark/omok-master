@@ -83,6 +83,7 @@ export default function Game({ difficulty, onExit }) {
   }, [op]);
 
   // CPU 처리 (오프닝 + 일반)
+  // deps에 opening.phase·step·currentTurn 포함 → CPU 연속 액션 시 재실행 보장
   useEffect(() => {
     if (!needsCpuAction || pendingRef.current) return;
     pendingRef.current = true;
@@ -124,7 +125,7 @@ export default function Game({ difficulty, onExit }) {
     }, 300);
 
     return () => { clearTimeout(id); pendingRef.current = false; };
-  }, [needsCpuAction, difficulty]);
+  }, [needsCpuAction, game.opening?.phase, game.opening?.step, game.currentTurn, difficulty]);
 
   const handlePlace = useCallback((row, col) => {
     if (thinking || game.status !== 'playing') return;
