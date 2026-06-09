@@ -11,6 +11,7 @@ import {
 import { isForbidden } from '../engine/forbidden.js';
 import { getZoneRange } from '../engine/opening.js';
 import Board from './Board.jsx';
+import ResultOverlay from './ResultOverlay.jsx';
 
 function statusMessage(game) {
   if (game.status === 'draw') return '무승부';
@@ -281,7 +282,7 @@ export default function Game({ difficulty, onExit }) {
         {/* 상태 표시 */}
         <div className="game-status">
           {thinking && <span className="thinking-indicator">CPU 생각 중…</span>}
-          {msg && <span className="result-text">{msg}</span>}
+          {!thinking && !op && game.status !== 'playing' && null}
           {!thinking && !msg && !op && (
             <span className="turn-text">
               {game.currentTurn === game.playerColor ? '내 차례' : 'CPU 차례'}
@@ -302,6 +303,7 @@ export default function Game({ difficulty, onExit }) {
           <button onClick={handleNewGame}>새 게임</button>
         </div>
       </div>
+      <ResultOverlay game={game} onNewGame={handleNewGame} onExit={onExit} />
     </div>
   );
 }
