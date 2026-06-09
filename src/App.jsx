@@ -8,7 +8,7 @@ export default function App() {
   if (!gameConfig) {
     return (
       <StartScreen
-        onStart={(difficulty, timeControl) => setGameConfig({ difficulty, timeControl })}
+        onStart={(difficulty) => setGameConfig({ difficulty })}
       />
     );
   }
@@ -16,7 +16,6 @@ export default function App() {
   return (
     <Game
       difficulty={gameConfig.difficulty}
-      timeControl={gameConfig.timeControl}
       onExit={() => setGameConfig(null)}
     />
   );
