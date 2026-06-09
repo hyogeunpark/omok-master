@@ -1,21 +1,35 @@
-export default function ResultOverlay({ game, onNewGame, onExit }) {
-  if (game.status === 'playing') return null;
+export default function ResultOverlay({ game, timeoutLoser, onNewGame, onExit }) {
+  const isOver = game.status !== 'playing' || !!timeoutLoser;
+  if (!isOver) return null;
 
-  const isWin =
-    (game.status === 'black-wins' && game.playerColor === 'B') ||
-    (game.status === 'white-wins' && game.playerColor === 'W');
-  const isDraw = game.status === 'draw';
-  const type = isDraw ? 'draw' : isWin ? 'win' : 'lose';
+  let isWin, isDraw;
+  if (timeoutLoser) {
+    isWin  = timeoutLoser === 'cpu';
+    isDraw = false;
+  } else {
+    isWin  = (game.status === 'black-wins' && game.playerColor === 'B') ||
+             (game.status === 'white-wins' && game.playerColor === 'W');
+    isDraw = game.status === 'draw';
+  }
 
+  const type     = isDraw ? 'draw' : isWin ? 'win' : 'lose';
   const mainText = isDraw ? '무승부' : isWin ? '승리' : '패배';
-  const subText  = isDraw
+  const subText  = timeoutLoser
+    ? (isWin ? '시간 초과 승리' : '시간 초과')
+    : isDraw
     ? '비겼습니다'
     : isWin
     ? '완벽한 승리입니다'
     : '분발하세요';
 
-  const winColor = game.status === 'black-wins' ? '흑' : game.status === 'white-wins' ? '백' : null;
-  const winDot   = game.status === 'black-wins' ? 'b' : 'w';
+  let winColor = null, winDot = null;
+  if (!isDraw) {
+    const winnerColor = timeoutLoser
+      ? (timeoutLoser === 'player' ? game.cpuColor : game.playerColor)
+      : (game.status === 'black-wins' ? 'B' : 'W');
+    winColor = winnerColor === 'B' ? '흑' : '백';
+    winDot   = winnerColor === 'B' ? 'b' : 'w';
+  }
 
   return (
     <div className={`result-overlay result-overlay--${type}`}>

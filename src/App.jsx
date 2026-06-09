@@ -3,11 +3,21 @@ import StartScreen from './ui/StartScreen.jsx';
 import Game from './ui/Game.jsx';
 
 export default function App() {
-  const [difficulty, setDifficulty] = useState(null);
+  const [gameConfig, setGameConfig] = useState(null);
 
-  if (!difficulty) {
-    return <StartScreen onStart={setDifficulty} />;
+  if (!gameConfig) {
+    return (
+      <StartScreen
+        onStart={(difficulty, timeControl) => setGameConfig({ difficulty, timeControl })}
+      />
+    );
   }
 
-  return <Game difficulty={difficulty} onExit={() => setDifficulty(null)} />;
+  return (
+    <Game
+      difficulty={gameConfig.difficulty}
+      timeControl={gameConfig.timeControl}
+      onExit={() => setGameConfig(null)}
+    />
+  );
 }

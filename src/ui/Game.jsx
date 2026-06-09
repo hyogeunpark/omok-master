@@ -20,18 +20,20 @@ function statusMessage(game) {
   return null;
 }
 
-// 오프닝 중 CPU가 처리해야 하는 액션인지 판정
+// MM:SS 형식 (docs/spec/timer.md §3-2)
+function formatTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
 function getCpuOpeningAction(game) {
-  const { opening, cpuColor, playerColor } = game;
+  const { opening, cpuColor } = game;
   if (!opening) return null;
+  const { phase, step, branch } = opening;
 
-  const { phase, step, branch, candidates } = opening;
-
-  // CPU 착수 차례
   if (phase === 'place' && game.currentTurn === cpuColor) return 'place';
 
-  // 스왑: 방금 착수한 색의 상대가 CPU면 CPU가 스왑 결정
-  // step별 스왑 권리자: 1,3,5수후→백, 2수후→흑, 선택1 5수전→흑
   const swapOwner = (() => {
     if (step === 1) return 'W';
     if (step === 2) return 'B';
@@ -41,52 +43,70 @@ function getCpuOpeningAction(game) {
     return null;
   })();
   if (phase === 'await-swap' && swapOwner === cpuColor) return 'swap';
-
-  // 분기 선택: 현재 백(currentTurn이 W지만 방금 4수 뒀으므로 이전 currentTurn이 W)
-  // 4수는 백이 두었으므로 await-branch에서 백(cpuColor)이 결정
   if (phase === 'await-branch' && cpuColor === 'W') return 'branch';
-
-  // 선택2 후보 제시: 흑(cpuColor)
   if (phase === 'await-candidates' && cpuColor === 'B') return 'candidates';
-
-  // 선택2 후보 선택: 백(cpuColor)
   if (phase === 'await-candidate-pick' && cpuColor === 'W') return 'pick-candidate';
-
   return null;
 }
 
-export default function Game({ difficulty, onExit }) {
+export default function Game({ difficulty, timeControl, onExit }) {
   const [game, setGame] = useState(() => createGame());
   const [thinking, setThinking] = useState(false);
   const pendingRef = useRef(false);
 
+  // ── Fischer 클록 (docs/spec/timer.md §1) ──
+  const initialClocks = useMemo(() => {
+    if (!timeControl?.mainMin) return null;
+    const sec = timeControl.mainMin * 60;
+    return { player: sec, cpu: sec };
+  }, [timeControl]);
+
+  const [clocks, setClocks] = useState(initialClocks);
+  const [timeoutLoser, setTimeoutLoser] = useState(null); // 'player' | 'cpu'
+  const prevHistLenRef = useRef(0);
+
+  // 착수당 increment 적용 — currentTurn 변화 = 착수 완료
+  const prevTurnRef = useRef(null);
+  useEffect(() => {
+    if (!clocks || !timeControl?.incrementSec || timeoutLoser) return;
+    if (prevTurnRef.current === null) { prevTurnRef.current = game.currentTurn; return; }
+    if (game.currentTurn === prevTurnRef.current) return;
+    // 방금 착수한 색 = 직전 turn
+    const justMovedColor = prevTurnRef.current;
+    const who = justMovedColor === game.playerColor ? 'player' : 'cpu';
+    setClocks(prev => prev ? { ...prev, [who]: prev[who] + timeControl.incrementSec } : prev);
+    prevTurnRef.current = game.currentTurn;
+  }, [game.currentTurn]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 시간 카운트다운 — 1초 간격
+  useEffect(() => {
+    if (!clocks || game.status !== 'playing' || timeoutLoser) return;
+    const whose = thinking ? 'cpu' : 'player';
+    const id = setInterval(() => {
+      setClocks(prev => {
+        if (!prev) return prev;
+        return { ...prev, [whose]: Math.max(0, prev[whose] - 1) };
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [thinking, game.status, !!clocks, timeoutLoser]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 시간 초과 감지
+  useEffect(() => {
+    if (!clocks || timeoutLoser || game.status !== 'playing') return;
+    if (clocks.player <= 0) setTimeoutLoser('player');
+    else if (clocks.cpu <= 0) setTimeoutLoser('cpu');
+  }, [clocks?.player, clocks?.cpu]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── 오프닝 + 일반 CPU 처리 ──
   const op = game.opening;
   const isOpeningActive = !!op;
   const cpuAction = getCpuOpeningAction(game);
   const isRegularCpuTurn = !isOpeningActive && game.status === 'playing' && game.currentTurn === game.cpuColor;
   const needsCpuAction = isOpeningActive ? !!cpuAction : isRegularCpuTurn;
 
-  // 금수 셀 (오프닝 끝난 후 흑 차례에만)
-  const forbiddenCells = useMemo(() => {
-    if (isOpeningActive || game.status !== 'playing' || game.currentTurn !== 'B') return [];
-    const cells = [];
-    for (let r = 0; r < 15; r++)
-      for (let c = 0; c < 15; c++)
-        if (game.board[r][c] === null && isForbidden(game.board, r, c, 'B'))
-          cells.push({ row: r, col: c });
-    return cells;
-  }, [game.board, game.status, game.currentTurn, isOpeningActive]);
-
-  // 존 표시 (오프닝 place 단계)
-  const zoneRange = useMemo(() => {
-    if (!op || op.phase !== 'place') return null;
-    return getZoneRange(op.step, op.branch);
-  }, [op]);
-
-  // CPU 처리 (오프닝 + 일반)
-  // deps에 opening.phase·step·currentTurn 포함 → CPU 연속 액션 시 재실행 보장
   useEffect(() => {
-    if (!needsCpuAction || pendingRef.current) return;
+    if (!needsCpuAction || pendingRef.current || timeoutLoser) return;
     pendingRef.current = true;
     setThinking(true);
 
@@ -99,7 +119,7 @@ export default function Game({ difficulty, onExit }) {
           return placeStone(g, move.row, move.col);
         }
         if (action === 'swap') {
-          const justPlayed = g.opening.step % 2 === 1 ? 'B' : 'W'; // 홀수수=흑착수
+          const justPlayed = g.opening.step % 2 === 1 ? 'B' : 'W';
           const doSwap = cpuShouldSwap(g.board.map(r => [...r]), justPlayed, difficulty);
           return doSwap ? performOpeningSwap(g) : skipOpeningSwap(g);
         }
@@ -117,7 +137,6 @@ export default function Game({ difficulty, onExit }) {
           const pick = cpuPickOpeningCandidate(g.board.map(r => [...r]), g.opening.candidates, difficulty);
           return pickOpeningCandidate(g, pick.row, pick.col);
         }
-        // 일반 착수
         const move = getCpuMove(g.board.map(r => [...r]), g.cpuColor, difficulty);
         return placeStone(g, move.row, move.col);
       });
@@ -126,9 +145,9 @@ export default function Game({ difficulty, onExit }) {
     }, 300);
 
     return () => { clearTimeout(id); pendingRef.current = false; };
-  }, [needsCpuAction, game.opening?.phase, game.opening?.step, game.currentTurn, difficulty]);
+  }, [needsCpuAction, game.opening?.phase, game.opening?.step, game.currentTurn, difficulty, timeoutLoser]);
 
-  // 스왑 권리자가 플레이어인지 — handlePlace보다 먼저 계산
+  // ── 플레이어 입력 ──
   const playerSwapOwner = (() => {
     if (!op || op.phase !== 'await-swap') return false;
     const owner = (() => {
@@ -143,52 +162,45 @@ export default function Game({ difficulty, onExit }) {
   })();
 
   const handlePlace = useCallback((row, col) => {
-    if (thinking || game.status !== 'playing') return;
+    if (thinking || game.status !== 'playing' || timeoutLoser) return;
     if (op) {
-      // await-swap: 플레이어가 돌을 두면 교환 없이 진행 후 착수
       if (op.phase === 'await-swap' && playerSwapOwner) {
         setGame(g => placeStone(skipOpeningSwap(g), row, col));
         return;
       }
-      // 오프닝: place 단계이고 플레이어 차례일 때만
       if (op.phase === 'place' && game.currentTurn === game.playerColor)
         setGame(g => placeStone(g, row, col));
-      // 선택2 후보 제시 단계
       else if (op.phase === 'await-candidates' && game.playerColor === 'B')
         setGame(g => addOpeningCandidate(g, row, col));
       return;
     }
     if (game.currentTurn !== game.playerColor) return;
     setGame(g => placeStone(g, row, col));
-  }, [thinking, game.status, game.currentTurn, game.playerColor, op, playerSwapOwner]);
+  }, [thinking, game.status, game.currentTurn, game.playerColor, op, playerSwapOwner, timeoutLoser]);
 
-  const handleSwap = useCallback((doSwap) => {
-    setGame(g => doSwap ? performOpeningSwap(g) : skipOpeningSwap(g));
-  }, []);
-
-  const handleBranch = useCallback((branch) => {
-    setGame(g => selectOpeningBranch(g, branch));
-  }, []);
-
-  const handlePickCandidate = useCallback((row, col) => {
-    setGame(g => pickOpeningCandidate(g, row, col));
-  }, []);
+  const handleSwap     = useCallback((doSwap) => { setGame(g => doSwap ? performOpeningSwap(g) : skipOpeningSwap(g)); }, []);
+  const handleBranch   = useCallback((branch) => { setGame(g => selectOpeningBranch(g, branch)); }, []);
+  const handlePickCandidate = useCallback((row, col) => { setGame(g => pickOpeningCandidate(g, row, col)); }, []);
 
   const handleUndo = useCallback(() => {
-    if (thinking || isOpeningActive) return;
+    if (thinking || isOpeningActive || timeoutLoser) return;
     setGame(g => undoMove(g));
-  }, [thinking, isOpeningActive]);
+  }, [thinking, isOpeningActive, timeoutLoser]);
 
   const handleNewGame = useCallback(() => {
     pendingRef.current = false;
     setThinking(false);
+    setTimeoutLoser(null);
+    prevTurnRef.current = null;
+    prevHistLenRef.current = 0;
+    setClocks(initialClocks ? { ...initialClocks } : null);
     setGame(createGame());
-  }, []);
+  }, [initialClocks]);
 
-  const msg = statusMessage(game);
-  const canUndo = !thinking && !isOpeningActive && game.history.length >= 2;
+  const msg    = statusMessage(game);
+  const canUndo = !thinking && !isOpeningActive && !timeoutLoser && game.history.length >= 2;
 
-  const boardDisabled = thinking || game.status !== 'playing' || (() => {
+  const boardDisabled = thinking || game.status !== 'playing' || !!timeoutLoser || (() => {
     if (!op) return game.currentTurn !== game.playerColor;
     if (op.phase === 'await-swap' && playerSwapOwner) return false;
     if (op.phase === 'place') return game.currentTurn !== game.playerColor;
@@ -197,16 +209,34 @@ export default function Game({ difficulty, onExit }) {
     return true;
   })();
 
-  const openingStepLabel = op ? `오프닝 ${op.step}수` : null;
-  const playerBranchOwner    = op?.phase === 'await-branch'         && game.playerColor === 'W';
-  const playerCandidateOwner = op?.phase === 'await-candidates'     && game.playerColor === 'B';
-  const playerPickOwner      = op?.phase === 'await-candidate-pick' && game.playerColor === 'W';
-  const candidateMarkers     = (op?.phase === 'await-candidate-pick' && op.candidates) ? op.candidates : [];
+  const openingStepLabel      = op ? `오프닝 ${op.step}수` : null;
+  const playerBranchOwner     = op?.phase === 'await-branch'         && game.playerColor === 'W';
+  const playerCandidateOwner  = op?.phase === 'await-candidates'     && game.playerColor === 'B';
+  const playerPickOwner       = op?.phase === 'await-candidate-pick' && game.playerColor === 'W';
+  const candidateMarkers      = (op?.phase === 'await-candidate-pick' && op.candidates) ? op.candidates : [];
 
-  const playerDot = game.playerColor === 'B' ? 'b' : 'w';
-  const cpuDot    = game.cpuColor    === 'B' ? 'b' : 'w';
+  const playerDot   = game.playerColor === 'B' ? 'b' : 'w';
+  const cpuDot      = game.cpuColor    === 'B' ? 'b' : 'w';
   const playerLabel = game.playerColor === 'B' ? '흑' : '백';
   const cpuLabel    = game.cpuColor    === 'B' ? '흑' : '백';
+
+  // 활성 클록: thinking이면 CPU, 아니면 플레이어
+  const activeOwner = thinking ? 'cpu' : 'player';
+
+  const forbiddenCells = useMemo(() => {
+    if (isOpeningActive || game.status !== 'playing' || game.currentTurn !== 'B') return [];
+    const cells = [];
+    for (let r = 0; r < 15; r++)
+      for (let c = 0; c < 15; c++)
+        if (game.board[r][c] === null && isForbidden(game.board, r, c, 'B'))
+          cells.push({ row: r, col: c });
+    return cells;
+  }, [game.board, game.status, game.currentTurn, isOpeningActive]);
+
+  const zoneRange = useMemo(() => {
+    if (!op || op.phase !== 'place') return null;
+    return getZoneRange(op.step, op.branch);
+  }, [op]);
 
   return (
     <div className="game">
@@ -222,7 +252,7 @@ export default function Game({ difficulty, onExit }) {
       />
 
       <div className="game-side">
-        {/* 헤더: 나가기 + 색상 표시 */}
+        {/* 헤더 */}
         <div className="game-header">
           <button className="btn-back" onClick={onExit}>← 나가기</button>
           <div className="color-info">
@@ -239,20 +269,39 @@ export default function Game({ difficulty, onExit }) {
           </div>
         </div>
 
+        {/* Fischer 클록 (docs/spec/timer.md §3-2) */}
+        {clocks && game.status === 'playing' && !timeoutLoser && (
+          <div className="game-clocks">
+            <div className={[
+              'gclock',
+              activeOwner === 'player' ? 'gclock--active' : 'gclock--idle',
+              clocks.player < 30 ? 'gclock--danger' : '',
+            ].join(' ')}>
+              <span className="gclock-label">나</span>
+              <span className="gclock-time">{formatTime(clocks.player)}</span>
+            </div>
+            <span className="gclock-sep">|</span>
+            <div className={[
+              'gclock',
+              activeOwner === 'cpu' ? 'gclock--active' : 'gclock--idle',
+              clocks.cpu < 30 ? 'gclock--danger' : '',
+            ].join(' ')}>
+              <span className="gclock-time">{formatTime(clocks.cpu)}</span>
+              <span className="gclock-label">CPU</span>
+            </div>
+          </div>
+        )}
+
         {/* 오프닝 UI */}
         {op && !thinking && (
           <div className="opening-prompt">
             <div className="opening-step-label">{openingStepLabel}</div>
-
             {playerSwapOwner && (
               <div className="opening-action">
                 <p className="opening-desc">색을 교환할 수 있습니다. 그냥 돌을 두면 교환 없이 진행됩니다.</p>
-                <div className="opening-btns">
-                  <button onClick={() => handleSwap(true)}>Swap</button>
-                </div>
+                <div className="opening-btns"><button onClick={() => handleSwap(true)}>Swap</button></div>
               </div>
             )}
-
             {playerBranchOwner && (
               <div className="opening-action">
                 <p className="opening-desc">5수 방식을 선택하세요</p>
@@ -262,15 +311,11 @@ export default function Game({ difficulty, onExit }) {
                 </div>
               </div>
             )}
-
             {playerCandidateOwner && (
               <div className="opening-action">
-                <p className="opening-desc">
-                  5수 후보를 {10 - op.candidates.length}개 더 선택하세요 (보드 클릭)
-                </p>
+                <p className="opening-desc">5수 후보를 {10 - op.candidates.length}개 더 선택하세요 (보드 클릭)</p>
               </div>
             )}
-
             {playerPickOwner && (
               <div className="opening-action">
                 <p className="opening-desc">후보 중 하나를 선택하세요 (보드 클릭)</p>
@@ -282,7 +327,6 @@ export default function Game({ difficulty, onExit }) {
         {/* 상태 표시 */}
         <div className="game-status">
           {thinking && <span className="thinking-indicator">CPU 생각 중…</span>}
-          {!thinking && !op && game.status !== 'playing' && null}
           {!thinking && !msg && !op && (
             <span className="turn-text">
               {game.currentTurn === game.playerColor ? '내 차례' : 'CPU 차례'}
@@ -303,7 +347,13 @@ export default function Game({ difficulty, onExit }) {
           <button onClick={handleNewGame}>새 게임</button>
         </div>
       </div>
-      <ResultOverlay game={game} onNewGame={handleNewGame} onExit={onExit} />
+
+      <ResultOverlay
+        game={game}
+        timeoutLoser={timeoutLoser}
+        onNewGame={handleNewGame}
+        onExit={onExit}
+      />
     </div>
   );
 }

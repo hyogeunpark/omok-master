@@ -26,6 +26,7 @@
 | `spec/opening.md` | 타라구치-10 오프닝 절차 (FR-7, FR-7a~c) |
 | `spec/swap.md` | 스왑 UI/UX 세부 규칙 (FR-7a) |
 | `spec/ai.md` | CPU AI — 알고리즘, 난이도 파라미터, 평가 함수 점수표 |
+| `spec/timer.md` | Fischer 클록 — 시간 프리셋, UI, 시간 초과 처리 |
 
 **개발 이력** `docs/history/` (참고용):
 

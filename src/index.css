@@ -235,6 +235,54 @@ body {
 }
 
 /* ─────────────────────────────────────
+   Start Screen — Time Control
+───────────────────────────────────── */
+.time-control-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.time-control-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.time-control-btn {
+  flex: 0 0 auto;
+  padding: 7px 14px;
+  border: 1px solid var(--outline);
+  border-radius: 20px;
+  background: var(--surface-low);
+  color: var(--on-surface-dim);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.time-control-btn:hover:not(:disabled) {
+  background: var(--surface-mid);
+  color: var(--on-surface);
+  border-color: var(--on-surface-dim);
+}
+
+.time-control-btn--active {
+  background: var(--accent-glow);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+.time-control-btn--active:hover:not(:disabled) {
+  background: rgba(212,175,55,0.2);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ─────────────────────────────────────
    Game Screen — Mobile (default)
 ───────────────────────────────────── */
 .game {
@@ -357,6 +405,61 @@ body {
 .stone-dot--md {
   width: 14px;
   height: 14px;
+}
+
+/* ─── Fischer 클록 (docs/spec/timer.md §3-2) ─── */
+.game-clocks {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--outline);
+  border-radius: 12px;
+  background: var(--surface-low);
+}
+
+.gclock {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  transition: opacity 0.2s;
+}
+
+.gclock--idle { opacity: 0.38; }
+.gclock--active { opacity: 1; }
+
+.gclock-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--on-surface-dim);
+}
+
+.gclock-time {
+  font-size: 1.3rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: var(--on-surface);
+}
+
+.gclock--active .gclock-time { color: var(--accent); }
+.gclock--danger .gclock-time { color: var(--error); animation: clockDanger 1s ease-in-out infinite; }
+
+.gclock-sep {
+  color: var(--outline);
+  font-size: 1rem;
+  padding: 0 4px;
+  align-self: center;
+  flex-shrink: 0;
+}
+
+@keyframes clockDanger {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
 }
 
 /* Opening prompt */

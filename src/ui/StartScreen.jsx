@@ -4,6 +4,14 @@ const DIFFICULTIES = [
   { key: 'hard',   label: '어려움', desc: '집중해야 이길 수 있어요', level: '03' },
 ];
 
+// docs/spec/timer.md §2: Fischer 클록 프리셋 (increment 30초 고정 — RIF 표준)
+const TIME_CONTROLS = [
+  { key: 'unlimited', label: '무제한',      mainMin: 0,  incrementSec: 0  },
+  { key: '3m',        label: '3분+30초',   mainMin: 3,  incrementSec: 30 },
+  { key: '5m',        label: '5분+30초',   mainMin: 5,  incrementSec: 30 },
+  { key: '10m',       label: '10분+30초',  mainMin: 10, incrementSec: 30 },
+];
+
 const NAV_ITEMS = [
   { icon: '⬡', label: '플레이', active: true },
   { icon: '◈', label: '규칙',   active: false },
@@ -11,7 +19,11 @@ const NAV_ITEMS = [
   { icon: '◉', label: '프로필', active: false },
 ];
 
+import { useState } from 'react';
+
 export default function StartScreen({ onStart }) {
+  const [selectedTime, setSelectedTime] = useState(TIME_CONTROLS[0]);
+
   return (
     <div className="start-screen">
       <header className="start-header">
@@ -30,7 +42,7 @@ export default function StartScreen({ onStart }) {
             <button
               key={key}
               className="difficulty-card"
-              onClick={() => onStart(key)}
+              onClick={() => onStart(key, selectedTime)}
             >
               <span className="difficulty-level">{level}</span>
               <div className="difficulty-text">
@@ -40,6 +52,21 @@ export default function StartScreen({ onStart }) {
               <span className="difficulty-arrow">→</span>
             </button>
           ))}
+        </div>
+
+        <div className="time-control-section">
+          <p className="start-section-label">시간 설정</p>
+          <div className="time-control-list">
+            {TIME_CONTROLS.map(tc => (
+              <button
+                key={tc.key}
+                className={`time-control-btn${selectedTime.key === tc.key ? ' time-control-btn--active' : ''}`}
+                onClick={() => setSelectedTime(tc)}
+              >
+                {tc.label}
+              </button>
+            ))}
+          </div>
         </div>
       </main>
 
@@ -52,6 +79,8 @@ export default function StartScreen({ onStart }) {
           <span>렌주 금수</span>
           <span>·</span>
           <span>타라구치-10 오프닝</span>
+          <span>·</span>
+          <span>Fischer 클록</span>
         </div>
       </footer>
 
