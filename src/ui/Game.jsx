@@ -63,19 +63,19 @@ export default function Game({ difficulty, timeControl, onExit }) {
 
   const [clocks, setClocks] = useState(initialClocks);
   const [timeoutLoser, setTimeoutLoser] = useState(null); // 'player' | 'cpu'
-  const prevHistLenRef = useRef(0);
 
-  // 착수당 increment 적용 — currentTurn 변화 = 착수 완료
+  // 착수당 increment 적용 — 오프닝 제외 (300ms CPU 연속착수로 시간 급증 방지)
   const prevTurnRef = useRef(null);
   useEffect(() => {
-    if (!clocks || !timeControl?.incrementSec || timeoutLoser) return;
+    // 초기 마운트: 레퍼런스만 설정
     if (prevTurnRef.current === null) { prevTurnRef.current = game.currentTurn; return; }
     if (game.currentTurn === prevTurnRef.current) return;
-    // 방금 착수한 색 = 직전 turn
-    const justMovedColor = prevTurnRef.current;
+    prevTurnRef.current = game.currentTurn;
+    // 오프닝 중이거나 타이머 없으면 미적용
+    if (!clocks || !timeControl?.incrementSec || timeoutLoser || game.opening) return;
+    const justMovedColor = game.currentTurn === 'B' ? 'W' : 'B';
     const who = justMovedColor === game.playerColor ? 'player' : 'cpu';
     setClocks(prev => prev ? { ...prev, [who]: prev[who] + timeControl.incrementSec } : prev);
-    prevTurnRef.current = game.currentTurn;
   }, [game.currentTurn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 시간 카운트다운 — 1초 간격
