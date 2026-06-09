@@ -127,9 +127,28 @@ export default function Game({ difficulty, onExit }) {
     return () => { clearTimeout(id); pendingRef.current = false; };
   }, [needsCpuAction, game.opening?.phase, game.opening?.step, game.currentTurn, difficulty]);
 
+  // 스왑 권리자가 플레이어인지 — handlePlace보다 먼저 계산
+  const playerSwapOwner = (() => {
+    if (!op || op.phase !== 'await-swap') return false;
+    const owner = (() => {
+      if (op.step === 1) return 'W';
+      if (op.step === 2) return 'B';
+      if (op.step === 3) return 'W';
+      if (op.step === 4 && op.branch === 1) return 'B';
+      if (op.step === 5 && op.branch === 1) return 'W';
+      return null;
+    })();
+    return owner === game.playerColor;
+  })();
+
   const handlePlace = useCallback((row, col) => {
     if (thinking || game.status !== 'playing') return;
     if (op) {
+      // await-swap: 플레이어가 돌을 두면 교환 없이 진행 후 착수
+      if (op.phase === 'await-swap' && playerSwapOwner) {
+        setGame(g => placeStone(skipOpeningSwap(g), row, col));
+        return;
+      }
       // 오프닝: place 단계이고 플레이어 차례일 때만
       if (op.phase === 'place' && game.currentTurn === game.playerColor)
         setGame(g => placeStone(g, row, col));
@@ -140,7 +159,7 @@ export default function Game({ difficulty, onExit }) {
     }
     if (game.currentTurn !== game.playerColor) return;
     setGame(g => placeStone(g, row, col));
-  }, [thinking, game.status, game.currentTurn, game.playerColor, op]);
+  }, [thinking, game.status, game.currentTurn, game.playerColor, op, playerSwapOwner]);
 
   const handleSwap = useCallback((doSwap) => {
     setGame(g => doSwap ? performOpeningSwap(g) : skipOpeningSwap(g));
@@ -172,6 +191,7 @@ export default function Game({ difficulty, onExit }) {
   // 보드 클릭 비활성화 여부
   const boardDisabled = thinking || game.status !== 'playing' || (() => {
     if (!op) return game.currentTurn !== game.playerColor;
+    if (op.phase === 'await-swap' && playerSwapOwner) return false; // 돌 두면 자동 패스
     if (op.phase === 'place') return game.currentTurn !== game.playerColor;
     if (op.phase === 'await-candidates' && game.playerColor === 'B') return false;
     if (op.phase === 'await-candidate-pick' && game.playerColor === 'W') return false;
@@ -180,20 +200,6 @@ export default function Game({ difficulty, onExit }) {
 
   // 오프닝 상태 텍스트
   const openingStepLabel = op ? `오프닝 ${op.step}수` : null;
-
-  // 스왑 권리자가 플레이어인지
-  const playerSwapOwner = (() => {
-    if (!op || op.phase !== 'await-swap') return false;
-    const owner = (() => {
-      if (op.step === 1) return 'W';
-      if (op.step === 2) return 'B';
-      if (op.step === 3) return 'W';
-      if (op.step === 4 && op.branch === 1) return 'B';
-      if (op.step === 5 && op.branch === 1) return 'W';
-      return null;
-    })();
-    return owner === game.playerColor;
-  })();
 
   const playerBranchOwner = op?.phase === 'await-branch' && game.playerColor === 'W';
   const playerCandidateOwner = op?.phase === 'await-candidates' && game.playerColor === 'B';
@@ -234,10 +240,9 @@ export default function Game({ difficulty, onExit }) {
           {/* 스왑 프롬프트 */}
           {playerSwapOwner && (
             <div className="opening-action">
-              <p className="opening-desc">색을 교환하시겠습니까?</p>
+              <p className="opening-desc">색을 교환할 수 있습니다. 그냥 돌을 두면 교환 없이 진행됩니다.</p>
               <div className="opening-btns">
-                <button onClick={() => handleSwap(true)}>교환</button>
-                <button onClick={() => handleSwap(false)}>패스</button>
+                <button onClick={() => handleSwap(true)}>Swap</button>
               </div>
             </div>
           )}
