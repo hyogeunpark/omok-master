@@ -32,9 +32,20 @@ src/ui/       — React 컴포넌트 (engine/ai를 호출만 함)
 
 ## 5. 스펙 문서 맵
 
+**기능 스펙** (기능 추가·변경 시 이 문서를 먼저 수정):
+
 | 문서 | 내용 |
 |------|------|
 | `docs/index.md` | 공통 규칙, 비기능 요구사항, 용어집 |
-| `docs/phase-1.md` | 자유 오목 (FR-1~5, FR-8~9) |
-| `docs/phase-2.md` | 렌주 금수 (FR-6, FR-2′) |
-| `docs/phase-3.md` | 타라구치-10 오프닝 (FR-7a~c) |
+| `docs/forbidden.md` | 렌주 금수 규칙 (FR-6, FR-2′) |
+| `docs/opening.md` | 타라구치-10 오프닝 절차 (FR-7, FR-7a~c) |
+| `docs/swap.md` | 스왑 UI/UX 세부 규칙 (FR-7a) |
+| `docs/ai.md` | AI 난이도 파라미터 및 평가 함수 |
+
+**개발 이력** (참고용, 수정 불필요):
+
+| 문서 | 내용 |
+|------|------|
+| `docs/phase-1.md` | 자유 오목 개발 이력 |
+| `docs/phase-2.md` | 렌주 금수 개발 이력 |
+| `docs/phase-3.md` | 타라구치-10 오프닝 개발 이력 |
