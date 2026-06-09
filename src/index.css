@@ -487,6 +487,7 @@ button:disabled { opacity: 0.3; cursor: not-allowed; }
   #root { max-width: 100%; }
 
   .game {
+    width: 100%;
     flex-direction: row;
     align-items: flex-start;
     gap: 32px;
@@ -505,7 +506,7 @@ button:disabled { opacity: 0.3; cursor: not-allowed; }
 
   .game-side {
     flex: 1;
-    min-width: 200px;
+    min-width: 0;
     max-width: 300px;
     padding-top: 4px;
     gap: 14px;
