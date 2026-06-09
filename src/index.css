@@ -196,6 +196,44 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   justify-content: center;
 }
 
+/* ── Phase 3 오프닝 UI ── */
+.opening-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #ffd70066;
+  border-radius: 10px;
+  background: rgba(255,215,0,0.05);
+}
+
+.opening-step-label {
+  font-size: 0.78rem;
+  color: #ffd700;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.opening-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.opening-desc {
+  font-size: 0.82rem;
+  color: #ccc;
+  text-align: center;
+}
+
+.opening-btns {
+  display: flex;
+  gap: 8px;
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
