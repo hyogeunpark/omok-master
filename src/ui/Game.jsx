@@ -185,46 +185,33 @@ export default function Game({ difficulty, onExit }) {
   }, []);
 
   const msg = statusMessage(game);
-  const myColor = game.playerColor === 'B' ? '흑 (선공)' : '백 (후공)';
   const canUndo = !thinking && !isOpeningActive && game.history.length >= 2;
 
-  // 보드 클릭 비활성화 여부
   const boardDisabled = thinking || game.status !== 'playing' || (() => {
     if (!op) return game.currentTurn !== game.playerColor;
-    if (op.phase === 'await-swap' && playerSwapOwner) return false; // 돌 두면 자동 패스
+    if (op.phase === 'await-swap' && playerSwapOwner) return false;
     if (op.phase === 'place') return game.currentTurn !== game.playerColor;
     if (op.phase === 'await-candidates' && game.playerColor === 'B') return false;
     if (op.phase === 'await-candidate-pick' && game.playerColor === 'W') return false;
     return true;
   })();
 
-  // 오프닝 상태 텍스트
   const openingStepLabel = op ? `오프닝 ${op.step}수` : null;
+  const playerBranchOwner    = op?.phase === 'await-branch'         && game.playerColor === 'W';
+  const playerCandidateOwner = op?.phase === 'await-candidates'     && game.playerColor === 'B';
+  const playerPickOwner      = op?.phase === 'await-candidate-pick' && game.playerColor === 'W';
+  const candidateMarkers     = (op?.phase === 'await-candidate-pick' && op.candidates) ? op.candidates : [];
 
-  const playerBranchOwner = op?.phase === 'await-branch' && game.playerColor === 'W';
-  const playerCandidateOwner = op?.phase === 'await-candidates' && game.playerColor === 'B';
-  const playerPickOwner = op?.phase === 'await-candidate-pick' && game.playerColor === 'W';
-
-  // 선택2 후보 표시용 (플레이어가 백일 때 후보 위치 마커)
-  const candidateMarkers = (op?.phase === 'await-candidate-pick' && op.candidates) ? op.candidates : [];
+  const playerDot = game.playerColor === 'B' ? 'b' : 'w';
+  const cpuDot    = game.cpuColor    === 'B' ? 'b' : 'w';
+  const playerLabel = game.playerColor === 'B' ? '흑' : '백';
+  const cpuLabel    = game.cpuColor    === 'B' ? '흑' : '백';
 
   return (
     <div className="game">
-      <div className="game-header">
-        <button className="btn-back" onClick={onExit}>← 나가기</button>
-        <span className="my-color-badge">
-          <i className={`stone-dot stone-dot--${game.playerColor === 'B' ? 'b' : 'w'}`} />
-          {myColor}{op ? ' (잠정)' : ''}
-        </span>
-      </div>
-
       <Board
         board={game.board}
-        onPlace={
-          playerPickOwner
-            ? handlePickCandidate
-            : handlePlace
-        }
+        onPlace={playerPickOwner ? handlePickCandidate : handlePlace}
         lastMove={game.lastMove}
         winningLine={game.winningLine}
         disabled={boardDisabled}
@@ -233,72 +220,87 @@ export default function Game({ difficulty, onExit }) {
         candidateMarkers={candidateMarkers}
       />
 
-      {/* 오프닝 UI */}
-      {op && !thinking && (
-        <div className="opening-prompt">
-          <div className="opening-step-label">{openingStepLabel}</div>
-
-          {/* 스왑 프롬프트 */}
-          {playerSwapOwner && (
-            <div className="opening-action">
-              <p className="opening-desc">색을 교환할 수 있습니다. 그냥 돌을 두면 교환 없이 진행됩니다.</p>
-              <div className="opening-btns">
-                <button onClick={() => handleSwap(true)}>Swap</button>
-              </div>
+      <div className="game-side">
+        {/* 헤더: 나가기 + 색상 표시 */}
+        <div className="game-header">
+          <button className="btn-back" onClick={onExit}>← 나가기</button>
+          <div className="color-info">
+            <div className="color-info-item">
+              <i className={`stone-dot stone-dot--${playerDot}`} />
+              <span>나 <em>{playerLabel}</em></span>
             </div>
-          )}
-
-          {/* 분기 선택 (플레이어가 백) */}
-          {playerBranchOwner && (
-            <div className="opening-action">
-              <p className="opening-desc">5수 방식을 선택하세요</p>
-              <div className="opening-btns">
-                <button onClick={() => handleBranch(1)}>선택 1 — 스왑 후 9×9</button>
-                <button onClick={() => handleBranch(2)}>선택 2 — 후보 10개</button>
-              </div>
+            <span className="color-info-sep" />
+            <div className="color-info-item">
+              <i className={`stone-dot stone-dot--${cpuDot}`} />
+              <span>CPU <em>{cpuLabel}</em></span>
             </div>
-          )}
-
-          {/* 선택2: 후보 제시 (플레이어가 흑) */}
-          {playerCandidateOwner && (
-            <div className="opening-action">
-              <p className="opening-desc">
-                5수 후보를 {10 - op.candidates.length}개 더 선택하세요 (보드 클릭)
-              </p>
-            </div>
-          )}
-
-          {/* 선택2: 후보 선택 (플레이어가 백) */}
-          {playerPickOwner && (
-            <div className="opening-action">
-              <p className="opening-desc">후보 중 하나를 선택하세요 (보드 클릭)</p>
-            </div>
-          )}
-
-          {/* CPU 처리 중 */}
-          {thinking && <p className="opening-desc">CPU 처리 중…</p>}
+            {op && <span className="color-info-tentative">(잠정)</span>}
+          </div>
         </div>
-      )}
 
-      {/* FR-8: 상태 표시 */}
-      <div className="game-status">
-        {thinking && <span className="thinking-indicator">CPU 생각 중…</span>}
-        {msg && <span className="result-text">{msg}</span>}
-        {!thinking && !msg && !op && (
-          <span className="turn-text">
-            {game.currentTurn === game.playerColor ? '내 차례' : 'CPU 차례'}
-          </span>
-        )}
-        {!thinking && !msg && op?.phase === 'place' && (
-          <span className="turn-text">
-            {game.currentTurn === game.playerColor ? `${openingStepLabel} — 내 차례` : `${openingStepLabel} — CPU 차례`}
-          </span>
-        )}
-      </div>
+        {/* 오프닝 UI */}
+        {op && !thinking && (
+          <div className="opening-prompt">
+            <div className="opening-step-label">{openingStepLabel}</div>
 
-      <div className="game-actions">
-        <button onClick={handleUndo} disabled={!canUndo}>되돌리기</button>
-        <button onClick={handleNewGame}>새 게임</button>
+            {playerSwapOwner && (
+              <div className="opening-action">
+                <p className="opening-desc">색을 교환할 수 있습니다. 그냥 돌을 두면 교환 없이 진행됩니다.</p>
+                <div className="opening-btns">
+                  <button onClick={() => handleSwap(true)}>Swap</button>
+                </div>
+              </div>
+            )}
+
+            {playerBranchOwner && (
+              <div className="opening-action">
+                <p className="opening-desc">5수 방식을 선택하세요</p>
+                <div className="opening-btns">
+                  <button onClick={() => handleBranch(1)}>선택 1 — 스왑 후 9×9</button>
+                  <button onClick={() => handleBranch(2)}>선택 2 — 후보 10개</button>
+                </div>
+              </div>
+            )}
+
+            {playerCandidateOwner && (
+              <div className="opening-action">
+                <p className="opening-desc">
+                  5수 후보를 {10 - op.candidates.length}개 더 선택하세요 (보드 클릭)
+                </p>
+              </div>
+            )}
+
+            {playerPickOwner && (
+              <div className="opening-action">
+                <p className="opening-desc">후보 중 하나를 선택하세요 (보드 클릭)</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 상태 표시 */}
+        <div className="game-status">
+          {thinking && <span className="thinking-indicator">CPU 생각 중…</span>}
+          {msg && <span className="result-text">{msg}</span>}
+          {!thinking && !msg && !op && (
+            <span className="turn-text">
+              {game.currentTurn === game.playerColor ? '내 차례' : 'CPU 차례'}
+            </span>
+          )}
+          {!thinking && !msg && op?.phase === 'place' && (
+            <span className="turn-text">
+              {game.currentTurn === game.playerColor
+                ? `${openingStepLabel} — 내 차례`
+                : `${openingStepLabel} — CPU 차례`}
+            </span>
+          )}
+        </div>
+
+        {/* 액션 버튼 */}
+        <div className="game-actions">
+          <button onClick={handleUndo} disabled={!canUndo}>되돌리기</button>
+          <button onClick={handleNewGame}>새 게임</button>
+        </div>
       </div>
     </div>
   );

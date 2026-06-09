@@ -235,13 +235,39 @@ body {
 }
 
 /* ─────────────────────────────────────
-   Game Screen
+   Game Screen — Mobile (default)
 ───────────────────────────────────── */
 .game {
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
-  padding: 0 14px 24px;
+  padding: 10px 12px 24px;
+  gap: 10px;
+}
+
+/* 모바일: 보드 먼저, side 패널 아래 */
+.board-wrapper {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow:
+    0 12px 48px rgba(0,0,0,0.65),
+    0 4px 12px rgba(0,0,0,0.4),
+    inset 0 0 0 1px rgba(255,255,255,0.04);
+  flex-shrink: 0;
+}
+
+.board-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.game-side {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 /* Header */
@@ -249,38 +275,65 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 0 10px;
+  gap: 10px;
 }
 
 .btn-back {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
+  gap: 4px;
+  padding: 5px 10px;
   border: 1px solid var(--outline);
-  border-radius: 8px;
+  border-radius: 7px;
   background: transparent;
   color: var(--on-surface-dim);
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   font-weight: 500;
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
   font-family: inherit;
+  white-space: nowrap;
 }
 
 .btn-back:hover { color: var(--on-surface); border-color: var(--on-surface-dim); }
 
-.my-color-badge {
+/* 색상 표시 (나 + CPU) */
+.color-info {
   display: flex;
   align-items: center;
-  gap: 7px;
-  font-size: 0.8rem;
+  gap: 8px;
+  padding: 5px 11px;
+  border: 1px solid var(--outline);
+  border-radius: 7px;
+  background: var(--surface-low);
+}
+
+.color-info-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.76rem;
+  color: var(--on-surface-dim);
+}
+
+.color-info-item em {
+  font-style: normal;
   font-weight: 600;
+  color: var(--on-surface);
+}
+
+.color-info-sep {
+  width: 1px;
+  height: 11px;
+  background: var(--outline);
+  flex-shrink: 0;
+}
+
+.color-info-tentative {
+  font-size: 0.65rem;
   color: var(--accent);
-  padding: 7px 13px;
-  border: 1px solid var(--accent-border);
-  border-radius: 8px;
-  background: var(--accent-glow);
+  font-weight: 500;
+  opacity: 0.8;
 }
 
 .stone-dot {
@@ -301,31 +354,12 @@ body {
   box-shadow: 0 1px 3px rgba(0,0,0,0.35);
 }
 
-/* Board */
-.board-wrapper {
-  width: 100%;
-  aspect-ratio: 1;
-  border-radius: 6px;
-  overflow: hidden;
-  box-shadow:
-    0 12px 48px rgba(0,0,0,0.65),
-    0 4px 12px rgba(0,0,0,0.4),
-    inset 0 0 0 1px rgba(255,255,255,0.04);
-}
-
-.board-svg {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
 /* Opening prompt */
 .opening-prompt {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  margin-top: 10px;
   padding: 14px 16px;
   border: 1px solid var(--accent-border);
   border-radius: 14px;
@@ -365,21 +399,20 @@ body {
 /* Status */
 .game-status {
   text-align: center;
-  min-height: 34px;
+  min-height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 6px;
 }
 
 .turn-text {
-  font-size: 0.83rem;
+  font-size: 0.82rem;
   color: var(--on-surface-dim);
   letter-spacing: 0.02em;
 }
 
 .thinking-indicator {
-  font-size: 0.83rem;
+  font-size: 0.82rem;
   color: var(--on-surface-dim);
   animation: pulse 1.3s ease-in-out infinite;
 }
@@ -395,7 +428,6 @@ body {
 .game-actions {
   display: flex;
   gap: 10px;
-  margin-top: 10px;
 }
 
 button {
@@ -420,7 +452,6 @@ button:hover:not(:disabled) {
 
 button:disabled { opacity: 0.3; cursor: not-allowed; }
 
-/* Opening action buttons override */
 .opening-btns button {
   flex: 0 1 auto;
   padding: 8px 20px;
@@ -438,4 +469,64 @@ button:disabled { opacity: 0.3; cursor: not-allowed; }
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.35; }
+}
+
+/* ─────────────────────────────────────
+   Responsive — Tablet (≥ 600px)
+   보드 높이 제한으로 화면 이탈 방지
+───────────────────────────────────── */
+@media (min-width: 600px) {
+  #root { max-width: 560px; }
+
+  .board-wrapper {
+    max-width: min(100%, calc(100dvh - 180px));
+    margin: 0 auto;
+  }
+}
+
+/* ─────────────────────────────────────
+   Responsive — Desktop (≥ 860px)
+   보드 왼쪽, 컨트롤 오른쪽 2-column
+───────────────────────────────────── */
+@media (min-width: 860px) {
+  #root {
+    max-width: 100%;
+  }
+
+  .game {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 32px;
+    padding: 32px 48px;
+    max-width: 1040px;
+    margin: 0 auto;
+    min-height: 100dvh;
+    box-sizing: border-box;
+  }
+
+  .board-wrapper {
+    flex: 0 0 auto;
+    width: min(calc(100dvh - 80px), 600px);
+    max-width: none;
+    margin: 0;
+  }
+
+  .game-side {
+    flex: 1;
+    min-width: 200px;
+    max-width: 300px;
+    padding-top: 4px;
+    gap: 14px;
+  }
+
+  .game-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .game-status {
+    justify-content: flex-start;
+    text-align: left;
+  }
 }
