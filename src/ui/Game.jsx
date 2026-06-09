@@ -213,7 +213,8 @@ export default function Game({ difficulty, onExit }) {
       <div className="game-header">
         <button className="btn-back" onClick={onExit}>← 나가기</button>
         <span className="my-color-badge">
-          내 색: {myColor}{op ? ' (잠정)' : ''}
+          <i className={`stone-dot stone-dot--${game.playerColor === 'B' ? 'b' : 'w'}`} />
+          {myColor}{op ? ' (잠정)' : ''}
         </span>
       </div>
 
