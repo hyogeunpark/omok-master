@@ -10,7 +10,7 @@
 - **easy**: 휴리스틱 1-ply (즉시 승리/차단 후 랜덤). 변경 없음.
 - **normal / hard**: Minimax + Alpha-Beta Pruning (Negamax 방식).
 - **후보 셀**: 기존 돌 주변 `SEARCH_RADIUS` 칸 이내의 빈 교점만 탐색 (전체 탐색 금지 — 성능).
-- **구현 위치**: `src/ai/evaluate.js` (평가 함수), `src/ai/minimax.js` (탐색), `src/ai/cpu.js` (진입점).
+- **구현 위치**: `src/ai/evaluate.js` (평가 함수), `src/ai/minimax.js` (탐색), `src/ai/vcf.js` (VCF 탐색), `src/ai/cpu.js` (진입점).
 
 ---
 
@@ -20,7 +20,7 @@
 |--------|--------|------|
 | `easy` | 쉬움 | 즉시 이기는 수·즉시 막아야 하는 수 우선 처리. 이후 35% 확률로 **주변(반경 3) 랜덤 수**, 나머지는 휴리스틱 최선 수. 보드 전체 랜덤 금지 — 항상 게임 중심부 근처에 착수. |
 | `normal` | 보통 | Minimax depth=2. 공격/방어 균형. |
-| `hard` | 어려움 | Minimax depth=4 + 이중 위협(double-threat) 감지. |
+| `hard` | 어려움 | VCF 선행 탐색 → Minimax depth=4. 방어 가중치 1.2. |
 
 ### 2-1. 난이도별 파라미터
 
@@ -31,7 +31,7 @@
 | `candidateLimit` | — | 10 | 8 |
 | 공격 가중치 | — | 1.0 | 1.0 |
 | 방어 가중치 | — | 1.0 | 1.2 |
-| 이중 위협 보너스 | 없음 | 없음 | 있음 |
+| VCF 탐색 | 없음 | 없음 | 있음 (Minimax 전 선행) |
 | `randomRate` | 0.35 | 없음 | 없음 |
 | 랜덤 범위 | 반경 3 이내 | — | — |
 
@@ -98,14 +98,14 @@ cellScore(row, col) =
 | 닫힌4(1000+) + 열린3(500+) | +4,000 |
 | 열린3(500+) + 열린3(500+) | +3,000 |
 
-#### 3-4-2. doubleThreatBonus (scorePosition용 — hard 전용)
+#### 3-4-2. scorePosition 복합 보너스 (이동 후보 정렬용 — 전 난이도)
 
-이동 후보 평가 시, 해당 수를 뒀을 때 형성되는 위협 방향 수를 기준으로 보너스 적용.
+`getOrderedCandidates`의 이동 후보 정렬 시 `scorePosition`에도 동일 복합 보너스 적용.
+복합 위협 수가 후보 목록 상위에 배치되어 Alpha-Beta 가지치기 효율 향상.
 
 | 조건 | 보너스 |
 |------|--------|
-| 4류(1000+) 방향 2개 이상 | +5,000 (기존) |
-| 열린3(500+) 방향 2개 이상 | +3,000 (신규) |
+| §3-4-1 compositeBonus 동일 기준 | 동일 값 적용 |
 
 ---
 
@@ -258,3 +258,4 @@ swap if swapScore > perStoneThreshold
 | 2026-06-10 | §3-2-1 점프 패턴 점수 추가: 갭=1 패턴을 open-3 수준으로 평가, cellStrength 개선 스펙. |
 | 2026-06-10 | §3-4 복합 위협 보너스 세분화: cellStrength 복합 보너스(전 난이도) + doubleThreatBonus 열린3+열린3 추가. |
 | 2026-06-10 | §3-5 VCF 탐색 추가: hard 전용, Minimax 전 선행 실행, maxDepth=10(5쌍). |
+| 2026-06-10 | 스펙-코드 정합성 정리: doubleThreat 데드 파라미터 제거, scorePosition에 compositeBonus 통합, §1/§2 VCF 반영. |

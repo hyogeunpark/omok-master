@@ -54,14 +54,26 @@ function dirScore(board, row, col, color, dr, dc) {
   return patternScore(count, openEnds);
 }
 
-// docs/ai.md §3-3: 공격/방어 점수 합산
+// 복합 위협 보너스 — docs/spec/ai.md §3-4-1
+function compositeBonus(scores) {
+  const [top1, top2] = [...scores].sort((a, b) => b - a);
+  if (top1 >= 10000 && top2 >= 1000) return 8000;
+  if (top1 >= 1000  && top2 >= 1000) return 5000;
+  if (top1 >= 1000  && top2 >= 500)  return 4000;
+  if (top1 >= 500   && top2 >= 500)  return 3000;
+  return 0;
+}
+
+// docs/ai.md §3-3: 공격/방어 점수 합산 + 복합 위협 보너스 (이동 후보 정렬용)
 // attackWeight, defenseWeight는 호출부에서 docs/ai.md §2-1 파라미터 주입
 export function scorePosition(board, row, col, color, attackWeight = 1.0, defenseWeight = 1.0) {
   const opp = color === 'B' ? 'W' : 'B';
   let score = 0;
 
   board[row][col] = color;
-  for (const [dr, dc] of DIRS) score += dirScore(board, row, col, color, dr, dc) * attackWeight;
+  const atkScores = DIRS.map(([dr, dc]) => dirScore(board, row, col, color, dr, dc));
+  score += atkScores.reduce((s, v) => s + v, 0) * attackWeight;
+  score += compositeBonus(atkScores);
   board[row][col] = null;
 
   board[row][col] = opp;
@@ -108,16 +120,6 @@ function dirScoreWithGap(board, row, col, color, dr, dc) {
   }
 
   return Math.max(baseScore, gapScore);
-}
-
-// 복합 위협 보너스 — docs/spec/ai.md §3-4-1
-function compositeBonus(scores) {
-  const [top1, top2] = [...scores].sort((a, b) => b - a);
-  if (top1 >= 10000 && top2 >= 1000) return 8000;
-  if (top1 >= 1000  && top2 >= 1000) return 5000;
-  if (top1 >= 1000  && top2 >= 500)  return 4000;
-  if (top1 >= 500   && top2 >= 500)  return 3000;
-  return 0;
 }
 
 // 이미 착수된 돌의 패턴 강도 — 4방향 합산 + 복합 위협 보너스 (docs/spec/ai.md §7-1, §3-2-1, §3-4-1)

@@ -1,15 +1,15 @@
 // docs/spec/ai.md §2 난이도 정의 기반
 import { BOARD_SIZE, inBounds } from '../engine/board.js';
-import { scorePosition, doubleThreatBonus, getCandidates, hasImmediate } from './evaluate.js';
+import { scorePosition, getCandidates, hasImmediate } from './evaluate.js';
 import { isForbidden } from '../engine/forbidden.js';
 import { isInOpeningZone, isCandidateDuplicate } from '../engine/opening.js';
 import { minimaxMove } from './minimax.js';
 import { vcfSearch } from './vcf.js';
 
 const PARAMS = {
-  easy:   { radius: 1, attackWeight: 1.0, defenseWeight: 1.0, randomRate: 0.35, doubleThreat: false, depth: 0,  candidateLimit: 0  },
-  normal: { radius: 2, attackWeight: 1.0, defenseWeight: 1.0, randomRate: 0,   doubleThreat: false, depth: 2,  candidateLimit: 10 },
-  hard:   { radius: 2, attackWeight: 1.0, defenseWeight: 1.2, randomRate: 0,   doubleThreat: true,  depth: 4,  candidateLimit: 8  },
+  easy:   { radius: 1, attackWeight: 1.0, defenseWeight: 1.0, randomRate: 0.35, depth: 0, candidateLimit: 0  },
+  normal: { radius: 2, attackWeight: 1.0, defenseWeight: 1.0, randomRate: 0,   depth: 2, candidateLimit: 10 },
+  hard:   { radius: 2, attackWeight: 1.0, defenseWeight: 1.2, randomRate: 0,   depth: 4, candidateLimit: 8  },
 };
 
 function randomEmpty(board) {
