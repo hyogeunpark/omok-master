@@ -86,10 +86,40 @@ export function doubleThreatBonus(board, row, col, color) {
   return threatDirs >= 2 ? 5000 : 0;
 }
 
-// 이미 착수된 돌의 패턴 강도 — 4방향 합산 (docs/spec/ai.md §7-1)
+// 갭=1 점프 패턴 탐색 — docs/spec/ai.md §3-2-1
+function dirScoreWithGap(board, row, col, color, dr, dc) {
+  const pos = countDir(board, row, col, color, dr, dc);
+  const neg = countDir(board, row, col, color, -dr, -dc);
+
+  // 갭 없는 연속 점수
+  const baseCount = 1 + pos.count + neg.count;
+  const baseEnds  = (pos.open ? 1 : 0) + (neg.open ? 1 : 0);
+  const baseScore = patternScore(baseCount, baseEnds);
+
+  // 갭=1: 양방향 중 한쪽에서 빈칸 1개 건너 돌이 이어지는지 확인
+  let gapScore = 0;
+  for (const [mainDir, crossDir] of [[1, -1], [-1, 1]]) {
+    const main  = mainDir === 1  ? pos : neg;
+    const cross = crossDir === 1 ? pos : neg;
+    // 해당 방향 끝이 열려 있을 때(빈칸) 한 칸 더 탐색
+    if (!main.open) continue;
+    const gr = row + dr * mainDir * (1 + main.count + 1);
+    const gc = col + dc * mainDir * (1 + main.count + 1);
+    if (!inBounds(gr, gc) || board[gr][gc] !== color) continue;
+    // 갭 너머 같은 색 돌 확인 → 점프 패턴 성립
+    const beyond = countDir(board, gr, gc, color, dr * mainDir, dc * mainDir);
+    const gapCount = 1 + main.count + 1 + beyond.count + cross.count; // 갭 포함 전체 연결 수
+    const gapEnds  = (beyond.open ? 1 : 0) + (cross.open ? 1 : 0);
+    gapScore = Math.max(gapScore, patternScore(gapCount, gapEnds));
+  }
+
+  return Math.max(baseScore, gapScore);
+}
+
+// 이미 착수된 돌의 패턴 강도 — 4방향 합산 (docs/spec/ai.md §7-1, §3-2-1)
 export function cellStrength(board, row, col, color) {
   let s = 0;
-  for (const [dr, dc] of DIRS) s += dirScore(board, row, col, color, dr, dc);
+  for (const [dr, dc] of DIRS) s += dirScoreWithGap(board, row, col, color, dr, dc);
   return s;
 }
 
