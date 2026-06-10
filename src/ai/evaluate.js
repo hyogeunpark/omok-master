@@ -72,18 +72,12 @@ export function scorePosition(board, row, col, color, attackWeight = 1.0, defens
   return score;
 }
 
-// docs/ai.md §3-4 이중 위협 보너스 (hard 전용)
+// docs/spec/ai.md §3-4-2 이중 위협 보너스 (hard 전용 — scorePosition용)
 export function doubleThreatBonus(board, row, col, color) {
-  const threshold = 1000; // 4점 이상 패턴 기준
-  let threatDirs = 0;
-
   board[row][col] = color;
-  for (const [dr, dc] of DIRS) {
-    if (dirScore(board, row, col, color, dr, dc) >= threshold) threatDirs++;
-  }
+  const scores = DIRS.map(([dr, dc]) => dirScore(board, row, col, color, dr, dc));
   board[row][col] = null;
-
-  return threatDirs >= 2 ? 5000 : 0;
+  return compositeBonus(scores);
 }
 
 // 갭=1 점프 패턴 탐색 — docs/spec/ai.md §3-2-1
@@ -116,11 +110,20 @@ function dirScoreWithGap(board, row, col, color, dr, dc) {
   return Math.max(baseScore, gapScore);
 }
 
-// 이미 착수된 돌의 패턴 강도 — 4방향 합산 (docs/spec/ai.md §7-1, §3-2-1)
+// 복합 위협 보너스 — docs/spec/ai.md §3-4-1
+function compositeBonus(scores) {
+  const [top1, top2] = [...scores].sort((a, b) => b - a);
+  if (top1 >= 10000 && top2 >= 1000) return 8000;
+  if (top1 >= 1000  && top2 >= 1000) return 5000;
+  if (top1 >= 1000  && top2 >= 500)  return 4000;
+  if (top1 >= 500   && top2 >= 500)  return 3000;
+  return 0;
+}
+
+// 이미 착수된 돌의 패턴 강도 — 4방향 합산 + 복합 위협 보너스 (docs/spec/ai.md §7-1, §3-2-1, §3-4-1)
 export function cellStrength(board, row, col, color) {
-  let s = 0;
-  for (const [dr, dc] of DIRS) s += dirScoreWithGap(board, row, col, color, dr, dc);
-  return s;
+  const scores = DIRS.map(([dr, dc]) => dirScoreWithGap(board, row, col, color, dr, dc));
+  return scores.reduce((s, v) => s + v, 0) + compositeBonus(scores);
 }
 
 // Minimax 정적 평가 — 현재 플레이어 기준 (docs/spec/ai.md §7-1)
