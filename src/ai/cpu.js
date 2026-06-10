@@ -4,6 +4,7 @@ import { scorePosition, doubleThreatBonus, getCandidates, hasImmediate } from '.
 import { isForbidden } from '../engine/forbidden.js';
 import { isInOpeningZone, isCandidateDuplicate } from '../engine/opening.js';
 import { minimaxMove } from './minimax.js';
+import { vcfSearch } from './vcf.js';
 
 const PARAMS = {
   easy:   { radius: 1, attackWeight: 1.0, defenseWeight: 1.0, randomRate: 0.35, doubleThreat: false, depth: 0,  candidateLimit: 0  },
@@ -144,6 +145,12 @@ export function getCpuMove(board, color, difficulty = 'normal') {
       if (score > bestScore) { bestScore = score; best = { row, col }; }
     }
     return best ?? randomEmpty(board);
+  }
+
+  // hard: VCF 선행 탐색 (docs/spec/ai.md §3-5-3)
+  if (difficulty === 'hard') {
+    const vcf = vcfSearch(board.map(r => [...r]), color);
+    if (vcf) return vcf;
   }
 
   // normal/hard: Minimax + Alpha-Beta (docs/spec/ai.md §7)

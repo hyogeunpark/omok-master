@@ -109,6 +109,56 @@ cellScore(row, col) =
 
 ---
 
+## 3-5. VCF (Victory by Continuous Four) 탐색
+
+### 3-5-1. 개요
+
+4-in-a-row 위협을 연속으로 만들어 상대가 계속 막는 동안 강제로 승리하는 수순.
+Minimax와 별개로 동작하며, Minimax 탐색 **전에** 선행 실행한다.
+
+### 3-5-2. 알고리즘
+
+```
+vcfSearch(board, color, maxDepth):
+  winThreats = 지금 바로 5목이 되는 자리들
+  if len(winThreats) >= 1: return winThreats[0]   // 즉시 승리
+  if maxDepth <= 0: return null
+
+  fourThreats = 착수 시 4-in-a-row(열린/닫힌)가 생기는 자리들
+
+  for each (r, c) in fourThreats:
+    place color at (r, c)
+    forcedBlocks = 착수 후 color 기준 즉시 5목이 되는 자리들 (상대 강제 응수)
+
+    if len(forcedBlocks) == 0 or >= 2:
+      restore → return (r, c)   // 막을 수 없거나 동시에 두 곳 위협
+
+    place opp at forcedBlocks[0]
+    result = vcfSearch(board, color, maxDepth - 2)
+    restore both
+
+    if result != null: return (r, c)
+
+  return null
+```
+
+- `maxDepth = 10` (5쌍) — 실전 VCF 수순 대부분 커버.
+- 흑의 경우 `isForbidden` 자리 제외.
+
+### 3-5-3. 적용 범위
+
+| 난이도 | VCF |
+|--------|-----|
+| easy | 미적용 |
+| normal | 미적용 |
+| hard | minimaxMove 호출 전 선행 실행 |
+
+### 3-5-4. 구현 파일
+
+`src/ai/vcf.js` (신규)
+
+---
+
 ## 4. 성능 제약
 
 - 보통·어려움 난이도 기준, 수 선택에 **500ms 이내** 완료 (`index.md §5`).
@@ -207,3 +257,4 @@ swap if swapScore > perStoneThreshold
 | 2026-06-09 | §7 Minimax 알고리즘 추가: Negamax+Alpha-Beta, depth/candidateLimit 파라미터, 수 정렬 스펙. |
 | 2026-06-10 | §3-2-1 점프 패턴 점수 추가: 갭=1 패턴을 open-3 수준으로 평가, cellStrength 개선 스펙. |
 | 2026-06-10 | §3-4 복합 위협 보너스 세분화: cellStrength 복합 보너스(전 난이도) + doubleThreatBonus 열린3+열린3 추가. |
+| 2026-06-10 | §3-5 VCF 탐색 추가: hard 전용, Minimax 전 선행 실행, maxDepth=10(5쌍). |
