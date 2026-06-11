@@ -594,6 +594,11 @@ button:disabled { opacity: 0.3; cursor: not-allowed; }
 @media (min-width: 860px) {
   #root { max-width: 100%; }
 
+  .start-screen {
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
   .game {
     width: 100%;
     flex-direction: row;
