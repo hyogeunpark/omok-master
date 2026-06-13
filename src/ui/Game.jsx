@@ -8,6 +8,7 @@ import {
 import { isForbidden } from '../engine/forbidden.js';
 import { getZoneRange } from '../engine/opening.js';
 import { saveRecord } from '../engine/records.js';
+import { playStoneSound } from './sound.js';
 import Board from './Board.jsx';
 import ResultOverlay from './ResultOverlay.jsx';
 
@@ -135,6 +136,11 @@ export default function Game({ player, difficulty, onExit }) {
     if (thinking || isOpeningActive) return;
     setGame(g => undoMove(g));
   }, [thinking, isOpeningActive]);
+
+  // 착수마다 효과음 (플레이어·CPU 모두)
+  useEffect(() => {
+    if (game.history.length > 0) playStoneSound();
+  }, [game.history.length]);
 
   // 게임 종료 시 기보 저장 (docs/spec/nav.md §5-2)
   useEffect(() => {
