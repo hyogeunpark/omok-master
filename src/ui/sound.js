@@ -41,13 +41,13 @@ function synthesize(ac) {
   osc.frequency.exponentialRampToValueAtTime(300, now + 0.04); // 높게 유지, 빠른 감쇠
 
   const oscGain = ac.createGain();
-  oscGain.gain.setValueAtTime(0.14, now);  // 저음 줄여서 날카로움 강조
-  oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+  oscGain.gain.setValueAtTime(0.18, now);
+  oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18); // 40ms → 180ms
 
   osc.connect(oscGain);
   oscGain.connect(ac.destination);
   osc.start(now);
-  osc.stop(now + 0.045);
+  osc.stop(now + 0.19);
 }
 
 export function playStoneSound() {
