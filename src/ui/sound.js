@@ -11,51 +11,42 @@ function getCtx() {
 function synthesize(ac) {
   const now = ac.currentTime;
 
-  // ① 날카로운 클릭 (돌이 판에 부딪히는 "딱" 성분)
-  const clickLen = Math.floor(ac.sampleRate * 0.012); // 12ms
-  const clickBuf = ac.createBuffer(1, clickLen, ac.sampleRate);
-  const clickData = clickBuf.getChannelData(0);
-  for (let i = 0; i < clickLen; i++) clickData[i] = Math.random() * 2 - 1;
+  // 공유 노이즈 버퍼 (300ms) — 오실레이터 대신 노이즈 기반으로 나무 질감 구현
+  const len = Math.floor(ac.sampleRate * 0.3);
+  const buf = ac.createBuffer(1, len, ac.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
 
-  const click = ac.createBufferSource();
-  click.buffer = clickBuf;
+  // 고Q 밴드패스 필터드 노이즈 = 피치 슬라이드 없는 자연스러운 공명
+  function layer(freq, Q, peak, decay) {
+    const src = ac.createBufferSource();
+    src.buffer = buf;
+    const filter = ac.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = freq;
+    filter.Q.value = Q;
+    const gain = ac.createGain();
+    gain.gain.setValueAtTime(peak, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + decay);
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(ac.destination);
+    src.start(now);
+  }
 
-  const clickFilter = ac.createBiquadFilter();
-  clickFilter.type = 'bandpass';
-  clickFilter.frequency.value = 5000;  // 더 고주파 → 날카로운 클릭
-  clickFilter.Q.value = 2.0;           // Q 높여 주파수 집중
+  // ① 충격 트랜지언트 — 돌이 판에 닿는 순간 "탁" 타격감
+  layer(1400, 1.0, 1.0,  0.008);
 
-  const clickGain = ac.createGain();
-  clickGain.gain.setValueAtTime(0.6, now);
-  clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.008); // 8ms로 더 짧게
+  // ② 나무 결 크랙 — 원목 표면의 중간 음역 질감
+  layer(600,  4.0, 0.35, 0.065);
 
-  click.connect(clickFilter);
-  clickFilter.connect(clickGain);
-  clickGain.connect(ac.destination);
-  click.start(now);
-
-  // ② 나무판 울림 (단단하고 짧은 목질 공명)
-  const osc = ac.createOscillator();
-  osc.type = 'sine';
-  // 주파수 드롭은 20ms 안에 빠르게 → 이후 고정 (날카로움 유지)
-  osc.frequency.setValueAtTime(1000, now);
-  osc.frequency.exponentialRampToValueAtTime(580, now + 0.02);
-
-  // 음량만 천천히 감쇠 → 울림 길게
-  const oscGain = ac.createGain();
-  oscGain.gain.setValueAtTime(0.18, now);
-  oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-
-  osc.connect(oscGain);
-  oscGain.connect(ac.destination);
-  osc.start(now);
-  osc.stop(now + 0.21);
+  // ③ 원목 공명 (핵심) — 속이 빈 두꺼운 나무판의 깊고 맑은 울림
+  layer(240,  16,  0.6,  0.22);
 }
 
 export function playStoneSound() {
   try {
     const ac = getCtx();
-    // resume()은 비동기 — 완료 후 합성해야 소리가 남
     if (ac.state === 'suspended') {
       ac.resume().then(() => synthesize(ac));
     } else {
