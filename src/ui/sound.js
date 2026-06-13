@@ -22,12 +22,12 @@ function synthesize(ac) {
 
   const clickFilter = ac.createBiquadFilter();
   clickFilter.type = 'bandpass';
-  clickFilter.frequency.value = 3200;  // 고주파 클릭
-  clickFilter.Q.value = 1.2;
+  clickFilter.frequency.value = 5000;  // 더 고주파 → 날카로운 클릭
+  clickFilter.Q.value = 2.0;           // Q 높여 주파수 집중
 
   const clickGain = ac.createGain();
-  clickGain.gain.setValueAtTime(0.45, now);
-  clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.012);
+  clickGain.gain.setValueAtTime(0.6, now);
+  clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.008); // 8ms로 더 짧게
 
   click.connect(clickFilter);
   clickFilter.connect(clickGain);
@@ -37,17 +37,17 @@ function synthesize(ac) {
   // ② 나무판 울림 (단단하고 짧은 목질 공명)
   const osc = ac.createOscillator();
   osc.type = 'sine';
-  osc.frequency.setValueAtTime(820, now);
-  osc.frequency.exponentialRampToValueAtTime(210, now + 0.055); // 90Hz 아닌 210Hz로 고정
+  osc.frequency.setValueAtTime(1000, now);
+  osc.frequency.exponentialRampToValueAtTime(300, now + 0.04); // 높게 유지, 빠른 감쇠
 
   const oscGain = ac.createGain();
-  oscGain.gain.setValueAtTime(0.22, now);
-  oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.055);
+  oscGain.gain.setValueAtTime(0.14, now);  // 저음 줄여서 날카로움 강조
+  oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
 
   osc.connect(oscGain);
   oscGain.connect(ac.destination);
   osc.start(now);
-  osc.stop(now + 0.06);
+  osc.stop(now + 0.045);
 }
 
 export function playStoneSound() {
