@@ -4,10 +4,7 @@ import {
   performOpeningSwap, skipOpeningSwap,
   selectOpeningBranch, addOpeningCandidate, pickOpeningCandidate,
 } from '../engine/game.js';
-import {
-  getCpuMove, getCpuOpeningMove, cpuShouldSwap,
-  cpuSelectBranch, cpuProposeOpeningCandidates, cpuPickOpeningCandidate,
-} from '../ai/cpu.js';
+// docs/spec/ai-player.md §6 — player 인터페이스로 통신
 import { isForbidden } from '../engine/forbidden.js';
 import { getZoneRange } from '../engine/opening.js';
 import { saveRecord } from '../engine/records.js';
@@ -44,7 +41,7 @@ function getCpuOpeningAction(game) {
   return null;
 }
 
-export default function Game({ difficulty, onExit }) {
+export default function Game({ player, difficulty, onExit }) {
   const [game, setGame] = useState(() => createGame());
   const [thinking, setThinking] = useState(false);
   const pendingRef = useRef(false);
@@ -67,29 +64,29 @@ export default function Game({ difficulty, onExit }) {
         const action = getCpuOpeningAction(g);
         if (action === 'place') {
           const op = g.opening;
-          const move = getCpuOpeningMove(g.board.map(r => [...r]), g.cpuColor, op.step, op.branch, difficulty);
+          const move = player.getOpeningMove(g.board.map(r => [...r]), g.cpuColor, op.step, op.branch);
           return placeStone(g, move.row, move.col);
         }
         if (action === 'swap') {
           const justPlayed = g.opening.step % 2 === 1 ? 'B' : 'W';
-          const doSwap = cpuShouldSwap(g.board.map(r => [...r]), justPlayed, difficulty);
+          const doSwap = player.shouldSwap(g.board.map(r => [...r]), justPlayed);
           return doSwap ? performOpeningSwap(g) : skipOpeningSwap(g);
         }
         if (action === 'branch') {
-          const branch = cpuSelectBranch(g.board.map(r => [...r]), difficulty);
+          const branch = player.selectBranch(g.board.map(r => [...r]));
           return selectOpeningBranch(g, branch);
         }
         if (action === 'candidates') {
-          const cands = cpuProposeOpeningCandidates(g.board.map(r => [...r]), difficulty);
+          const cands = player.proposeOpeningCandidates(g.board.map(r => [...r]));
           let next = g;
           for (const { row, col } of cands) next = addOpeningCandidate(next, row, col);
           return next;
         }
         if (action === 'pick-candidate') {
-          const pick = cpuPickOpeningCandidate(g.board.map(r => [...r]), g.opening.candidates, difficulty);
+          const pick = player.pickOpeningCandidate(g.board.map(r => [...r]), g.opening.candidates);
           return pickOpeningCandidate(g, pick.row, pick.col);
         }
-        const move = getCpuMove(g.board.map(r => [...r]), g.cpuColor, difficulty);
+        const move = player.getMove(g.board.map(r => [...r]), g.cpuColor);
         return placeStone(g, move.row, move.col);
       });
       pendingRef.current = false;
@@ -97,7 +94,7 @@ export default function Game({ difficulty, onExit }) {
     }, 300);
 
     return () => { clearTimeout(id); pendingRef.current = false; };
-  }, [needsCpuAction, game.opening?.phase, game.opening?.step, game.currentTurn, difficulty]);
+  }, [needsCpuAction, game.opening?.phase, game.opening?.step, game.currentTurn, player]);
 
   // ── 플레이어 입력 ──
   const playerSwapOwner = (() => {
