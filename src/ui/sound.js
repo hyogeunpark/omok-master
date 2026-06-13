@@ -37,17 +37,19 @@ function synthesize(ac) {
   // ② 나무판 울림 (단단하고 짧은 목질 공명)
   const osc = ac.createOscillator();
   osc.type = 'sine';
+  // 주파수 드롭은 20ms 안에 빠르게 → 이후 고정 (날카로움 유지)
   osc.frequency.setValueAtTime(1000, now);
-  osc.frequency.exponentialRampToValueAtTime(300, now + 0.04); // 높게 유지, 빠른 감쇠
+  osc.frequency.exponentialRampToValueAtTime(580, now + 0.02);
 
+  // 음량만 천천히 감쇠 → 울림 길게
   const oscGain = ac.createGain();
   oscGain.gain.setValueAtTime(0.18, now);
-  oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18); // 40ms → 180ms
+  oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
 
   osc.connect(oscGain);
   oscGain.connect(ac.destination);
   osc.start(now);
-  osc.stop(now + 0.19);
+  osc.stop(now + 0.21);
 }
 
 export function playStoneSound() {
