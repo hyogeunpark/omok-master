@@ -10,6 +10,7 @@ import {
 } from '../ai/cpu.js';
 import { isForbidden } from '../engine/forbidden.js';
 import { getZoneRange } from '../engine/opening.js';
+import { saveRecord } from '../engine/records.js';
 import Board from './Board.jsx';
 import ResultOverlay from './ResultOverlay.jsx';
 
@@ -47,6 +48,7 @@ export default function Game({ difficulty, onExit }) {
   const [game, setGame] = useState(() => createGame());
   const [thinking, setThinking] = useState(false);
   const pendingRef = useRef(false);
+  const savedRef = useRef(false);
 
   // ── 오프닝 + 일반 CPU 처리 ──
   const op = game.opening;
@@ -137,8 +139,26 @@ export default function Game({ difficulty, onExit }) {
     setGame(g => undoMove(g));
   }, [thinking, isOpeningActive]);
 
+  // 게임 종료 시 기보 저장 (docs/spec/nav.md §5-2)
+  useEffect(() => {
+    if (game.status === 'playing' || savedRef.current) return;
+    savedRef.current = true;
+    const result = game.status === 'draw' ? 'draw'
+      : (game.status === 'black-wins' && game.playerColor === 'B') ||
+        (game.status === 'white-wins' && game.playerColor === 'W') ? 'win' : 'lose';
+    saveRecord({
+      id: Date.now().toString(),
+      date: new Date().toISOString(),
+      difficulty,
+      myColor: game.playerColor,
+      result,
+      moves: game.history,
+    });
+  }, [game.status, game.playerColor, difficulty]);
+
   const handleNewGame = useCallback(() => {
     pendingRef.current = false;
+    savedRef.current = false;
     setThinking(false);
     setGame(createGame());
   }, []);

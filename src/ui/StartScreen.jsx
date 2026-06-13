@@ -4,13 +4,6 @@ const DIFFICULTIES = [
   { key: 'hard',   label: '어려움', desc: '집중해야 이길 수 있어요', level: '03' },
 ];
 
-const NAV_ITEMS = [
-  { icon: '⬡', label: '플레이', active: true },
-  { icon: '◈', label: '규칙',   active: false },
-  { icon: '◫', label: '기보',   active: false },
-  { icon: '◉', label: '프로필', active: false },
-];
-
 export default function StartScreen({ onStart }) {
   return (
     <div className="start-screen">
@@ -55,17 +48,6 @@ export default function StartScreen({ onStart }) {
         </div>
       </footer>
 
-      <nav className="bottom-nav" aria-hidden="true">
-        {NAV_ITEMS.map(({ icon, label, active }) => (
-          <div
-            key={label}
-            className={`bottom-nav-item${active ? ' bottom-nav-item--active' : ''}`}
-          >
-            <span className="bottom-nav-icon">{icon}</span>
-            <span>{label}</span>
-          </div>
-        ))}
-      </nav>
     </div>
   );
 }

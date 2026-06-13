@@ -38,9 +38,9 @@ body {
    Start Screen
 ───────────────────────────────────── */
 .start-screen {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 100dvh;
   padding: 0 24px;
 }
 
@@ -199,12 +199,13 @@ body {
   opacity: 0.55;
 }
 
-/* Bottom nav (decorative) */
+/* Bottom nav */
 .bottom-nav {
   display: flex;
   border-top: 1px solid var(--outline);
   background: var(--surface-low);
   padding-bottom: env(safe-area-inset-bottom, 0);
+  flex-shrink: 0;
 }
 
 .bottom-nav-item {
@@ -220,18 +221,424 @@ body {
   color: var(--on-surface-dim);
   font-size: 0.6rem;
   font-weight: 500;
-  cursor: default;
-  transition: none;
+  cursor: pointer;
+  transition: color 0.15s;
   font-family: inherit;
 }
 
-.bottom-nav-item--active {
-  color: var(--accent);
-}
+.bottom-nav-item:hover { color: var(--on-surface); }
+.bottom-nav-item--active { color: var(--accent); }
+.bottom-nav-item--active:hover { color: var(--accent); }
 
 .bottom-nav-icon {
   font-size: 1.1rem;
   line-height: 1;
+}
+
+/* ─────────────────────────────────────
+   Tab Screens — 공통 레이아웃
+───────────────────────────────────── */
+.tab-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.tab-screen-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 20px 14px;
+  border-bottom: 1px solid var(--outline);
+  flex-shrink: 0;
+}
+
+.tab-screen-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--on-surface);
+  letter-spacing: -0.01em;
+}
+
+.tab-header-btn {
+  padding: 5px 12px;
+  border: 1px solid var(--outline);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--on-surface-dim);
+  font-size: 0.74rem;
+  cursor: pointer;
+  font-family: inherit;
+  flex: none;
+}
+
+.tab-header-btn:hover:not(:disabled) {
+  color: var(--error);
+  border-color: var(--error);
+}
+
+.tab-screen-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.tab-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--on-surface-dim);
+  opacity: 0.5;
+}
+
+.tab-empty-icon {
+  font-size: 2.4rem;
+  line-height: 1;
+}
+
+.tab-empty p {
+  font-size: 0.85rem;
+}
+
+/* ─────────────────────────────────────
+   Rules Screen
+───────────────────────────────────── */
+.rules-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rules-section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.rules-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rules-list li {
+  font-size: 0.85rem;
+  color: var(--on-surface-dim);
+  line-height: 1.55;
+  padding-left: 14px;
+  position: relative;
+}
+
+.rules-list li::before {
+  content: '·';
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+}
+
+.rules-desc {
+  font-size: 0.82rem;
+  color: var(--on-surface-dim);
+  line-height: 1.55;
+}
+
+.rules-forbidden-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rules-forbidden-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.rules-forbidden-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 90px;
+  padding-top: 4px;
+}
+
+.rules-forbidden-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--error);
+  letter-spacing: 0.04em;
+}
+
+.rules-forbidden-note {
+  font-size: 0.68rem;
+  color: var(--on-surface-dim);
+  line-height: 1.4;
+}
+
+.rules-legend {
+  font-size: 0.72rem;
+  color: var(--on-surface-dim);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rules-legend-stone {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* 미니 보드 */
+.mini-board {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  background: #2b2308;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(212,175,55,0.12);
+}
+
+.mini-board-row {
+  display: flex;
+  gap: 2px;
+}
+
+.mini-cell {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.mini-cell::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  height: 1px;
+  background: #5a4420;
+}
+
+.mini-cell::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 1px;
+  background: #5a4420;
+  left: 50%;
+}
+
+.mini-stone {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+.mini-stone--b {
+  background: radial-gradient(circle at 38% 32%, #555, #111);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.6);
+}
+
+.mini-stone--w {
+  background: radial-gradient(circle at 38% 32%, #fff, #d4d0c8);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.mini-stone--x {
+  background: var(--error);
+  opacity: 0.85;
+}
+
+/* 오프닝 목록 */
+.rules-opening-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  counter-reset: opening-step;
+}
+
+.rules-opening-list li {
+  font-size: 0.84rem;
+  color: var(--on-surface-dim);
+  line-height: 1.5;
+  display: flex;
+  gap: 10px;
+  counter-increment: opening-step;
+}
+
+.rules-opening-list li::before {
+  content: counter(opening-step);
+  min-width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--surface-high);
+  color: var(--accent);
+  font-size: 0.68rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ─────────────────────────────────────
+   Records Screen
+───────────────────────────────────── */
+.records-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.record-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--outline);
+  border-radius: 12px;
+  background: var(--surface-low);
+}
+
+.record-card--win  { border-color: rgba(212,175,55,0.3); }
+.record-card--lose { opacity: 0.65; }
+
+.record-result {
+  font-size: 1.1rem;
+  font-weight: 800;
+  min-width: 22px;
+  text-align: center;
+}
+
+.record-card--win  .record-result { color: var(--accent); }
+.record-card--lose .record-result { color: var(--on-surface-dim); }
+.record-card--draw .record-result { color: var(--on-surface-dim); }
+
+.record-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.record-meta {
+  font-size: 0.82rem;
+  color: var(--on-surface);
+  font-weight: 500;
+}
+
+.record-moves {
+  font-size: 0.72rem;
+  color: var(--on-surface-dim);
+}
+
+.record-date {
+  font-size: 0.7rem;
+  color: var(--on-surface-dim);
+  white-space: nowrap;
+}
+
+/* ─────────────────────────────────────
+   Profile Screen
+───────────────────────────────────── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.stats-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 8px;
+  border: 1px solid var(--outline);
+  border-radius: 10px;
+  background: var(--surface-low);
+}
+
+.stats-cell--rate {
+  grid-column: span 4;
+  flex-direction: row;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+}
+
+.stats-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--on-surface);
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-cell--win .stats-value { color: var(--accent); }
+.stats-cell--rate .stats-value { font-size: 1.6rem; color: var(--accent); }
+
+.stats-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--on-surface-dim);
+}
+
+.difficulty-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--outline);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.difficulty-stat-row {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  gap: 12px;
+  border-bottom: 1px solid var(--outline);
+}
+
+.difficulty-stat-row:last-child { border-bottom: none; }
+
+.difficulty-stat-label {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--on-surface);
+  min-width: 40px;
+}
+
+.difficulty-stat-count {
+  flex: 1;
+  font-size: 0.78rem;
+  color: var(--on-surface-dim);
+}
+
+.difficulty-stat-rate {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--accent);
+  min-width: 40px;
+  text-align: right;
 }
 
 /* ─────────────────────────────────────
