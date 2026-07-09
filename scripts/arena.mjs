@@ -7,20 +7,35 @@
 //   node scripts/arena.mjs --verbose       # 사고시간 컬럼 추가
 import { createAiPlayer } from '../src/ai/createAiPlayer.js';
 import { runTournament, randomOpenings } from '../src/ai/arena/arena.js';
+import { openingTournament } from '../src/ai/arena/openingArena.js';
 import { saveGames, loadGames, reviewGame } from '../src/ai/arena/review.js';
 
 function parseArgs(argv) {
-  const opts = { games: 20, verbose: false, save: null, review: null, openings: 4, seed: 1 };
+  const opts = { games: 20, verbose: false, save: null, review: null, openings: 4, seed: 1, opening: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--games') opts.games = Number(argv[++i]);
     else if (a === '--openings') opts.openings = Number(argv[++i]);
     else if (a === '--seed') opts.seed = Number(argv[++i]);
+    else if (a === '--opening') opts.opening = true;
     else if (a === '--verbose') opts.verbose = true;
     else if (a === '--save') opts.save = argv[++i];
     else if (a === '--review') opts.review = argv[++i];
   }
   return opts;
+}
+
+function printStandings(standings) {
+  console.log(
+    `\n${pad('Standings', 20)}${padStart('W', 5)}${padStart('L', 5)}${padStart('D', 5)}${padStart('Pts', 6)}${padStart('illegal', 9)}`,
+  );
+  for (const s of standings) {
+    console.log(
+      pad(s.name, 20) +
+        padStart(s.wins, 5) + padStart(s.losses, 5) + padStart(s.draws, 5) +
+        padStart(s.points, 6) + padStart(s.illegal, 9),
+    );
+  }
 }
 
 function pad(s, n) {
@@ -98,24 +113,44 @@ function tournamentMode(opts) {
     console.log(line);
   }
 
+  printStandings(standings);
+}
+
+// §5-5 오프닝 포함 대전 모드
+function openingMode(opts) {
+  const list = entries();
+  const collected = [];
+  const onGame = opts.save ? (r) => collected.push(r) : undefined;
+
   console.log(
-    `\n${pad('Standings', 20)}${padStart('W', 5)}${padStart('L', 5)}${padStart('D', 5)}${padStart('Pts', 6)}${padStart('illegal', 9)}`,
+    `\nArena (오프닝 포함) — ${list.length} brains, ${opts.games} games/match, 타라구치-10\n`,
   );
-  for (const s of standings) {
+
+  const { table, standings } = openingTournament(list, { games: opts.games, onGame });
+
+  if (opts.save) {
+    saveGames(collected, opts.save);
+    console.log(`기보 ${collected.length}판을 ${opts.save}에 저장했습니다 (복기: --review ${opts.save}).`);
+  }
+
+  console.log(
+    `${pad('Match', 34)}${padStart('winA', 6)}${padStart('winB', 6)}${padStart('draw', 6)}${padStart('winRateA', 10)}${padStart('avgSwap', 9)}`,
+  );
+  for (const m of table) {
     console.log(
-      pad(s.name, 20) +
-        padStart(s.wins, 5) +
-        padStart(s.losses, 5) +
-        padStart(s.draws, 5) +
-        padStart(s.points, 6) +
-        padStart(s.illegal, 9),
+      pad(`${m.nameA} vs ${m.nameB}`, 34) +
+        padStart(m.winsA, 6) + padStart(m.winsB, 6) + padStart(m.draws, 6) +
+        padStart(m.winRateA.toFixed(2), 10) + padStart(m.avgSwaps.toFixed(2), 9),
     );
   }
+  printStandings(standings);
 }
 
 const opts = parseArgs(process.argv.slice(2));
 if (opts.review) {
   reviewMode(opts.review);
+} else if (opts.opening) {
+  openingMode(opts);
 } else {
   tournamentMode(opts);
 }
