@@ -1,9 +1,15 @@
 // docs/spec/ai-player.md §4-2 MinimaxPlayer (normal/hard)
 import { BOARD_SIZE } from '../../engine/board.js';
-import { scorePosition, getCandidates } from '../evaluate.js';
+import { scorePosition, getCandidates, hasImmediate } from '../evaluate.js';
 import { isInOpeningZone, isCandidateDuplicate } from '../../engine/opening.js';
 import { minimaxMove } from '../minimax.js';
 import { vcfSearch } from '../vcf.js';
+
+// 상대가 지금 당장 5목을 완성할 수 있는 자리가 있는가 (VCF 방어 우선 판정용)
+function oppHasImmediateWin(board, color) {
+  const opp = color === 'B' ? 'W' : 'B';
+  return getCandidates(board, 2).some(({ row, col }) => hasImmediate(board, row, col, opp));
+}
 
 function randomEmpty(board) {
   const empty = [];
@@ -21,9 +27,9 @@ export class MinimaxPlayer {
     this._vcf            = vcf;
   }
 
-  // VCF 선행(hard) → Minimax
+  // VCF 선행(hard) → Minimax. 단 상대 즉시-5 위협이 있으면 VCF 생략(docs/spec/ai.md §3-5-1 방어 우선).
   getMove(board, color) {
-    if (this._vcf) {
+    if (this._vcf && !oppHasImmediateWin(board, color)) {
       const vcfMove = vcfSearch(board.map(r => [...r]), color);
       if (vcfMove) return vcfMove;
     }

@@ -116,6 +116,9 @@ cellScore(row, col) =
 4-in-a-row 위협을 연속으로 만들어 상대가 계속 막는 동안 강제로 승리하는 수순.
 Minimax와 별개로 동작하며, Minimax 탐색 **전에** 선행 실행한다.
 
+**방어 우선 예외 (중요)**: VCF는 상대가 내 4를 강제로 막는다고 가정하므로, **상대가 지금 당장 5목을 완성할 수 있는 국면에서는 VCF를 신뢰할 수 없다**(상대가 내 4를 무시하고 먼저 이긴다). 따라서 `getMove`는 상대 즉시-5 위협이 있으면 **VCF를 생략**하고 `minimaxMove`로 넘겨 차단하게 한다(minimax는 즉시 승리→즉시 차단을 우선). 내가 이번 수로 5목을 만들 수 있으면 minimax가 그 승리를 먼저 둔다.
+(근거: Arena 복기에서 hard의 패배 중 일부가 "상대 즉시-5를 무시하고 VCF 공격을 둠"으로 확인됨.)
+
 ### 3-5-2. 알고리즘
 
 ```
@@ -259,3 +262,4 @@ swap if swapScore > perStoneThreshold
 | 2026-06-10 | §3-4 복합 위협 보너스 세분화: cellStrength 복합 보너스(전 난이도) + doubleThreatBonus 열린3+열린3 추가. |
 | 2026-06-10 | §3-5 VCF 탐색 추가: hard 전용, Minimax 전 선행 실행, maxDepth=10(5쌍). |
 | 2026-06-10 | 스펙-코드 정합성 정리: doubleThreat 데드 파라미터 제거, scorePosition에 compositeBonus 통합, §1/§2 VCF 반영. |
+| 2026-07-10 | §3-5-1 방어 우선 예외 추가: 상대 즉시-5 위협 시 VCF 생략(Arena 복기로 발견한 패착 버그 수정). |
