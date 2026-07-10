@@ -10,6 +10,7 @@ export function createAiPlayer(difficulty) {
       return new MinimaxPlayer({ depth: 2, candidateLimit: 10, defenseWeight: 1.0 });
     case 'hard':
     default:
-      return new MinimaxPlayer({ depth: 4, candidateLimit: 8, defenseWeight: 1.2, vcf: true });
+      // depth 6 + 트랜스포지션 테이블/반복심화 (docs/spec/ai.md §7-4). d4보다 강하며 실전 속도 확보.
+      return new MinimaxPlayer({ depth: 6, candidateLimit: 8, defenseWeight: 1.2, vcf: true, tt: true });
   }
 }

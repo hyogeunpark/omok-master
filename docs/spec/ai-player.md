@@ -58,7 +58,7 @@ createAiPlayer(difficulty: 'easy' | 'normal' | 'hard'): AiPlayer
 |-----------|------------|
 | `easy` | `HeuristicPlayer` |
 | `normal` | `MinimaxPlayer({ depth: 2, candidateLimit: 10, defenseWeight: 1.0 })` |
-| `hard` | `MinimaxPlayer({ depth: 4, candidateLimit: 8,  defenseWeight: 1.2, vcf: true })` |
+| `hard` | `MinimaxPlayer({ depth: 6, candidateLimit: 8,  defenseWeight: 1.2, vcf: true, tt: true })` |
 
 ---
 
@@ -82,8 +82,10 @@ createAiPlayer(difficulty: 'easy' | 'normal' | 'hard'): AiPlayer
 `docs/spec/ai.md §7` Minimax 로직 이전. 생성 시 파라미터 주입.
 
 ```js
-new MinimaxPlayer({ depth, candidateLimit, defenseWeight, vcf = false })
+new MinimaxPlayer({ depth, candidateLimit, defenseWeight, vcf = false, tt = false })
 ```
+
+- `tt: true`이면 트랜스포지션 테이블 + 반복심화 탐색(`minimaxMoveTT`, `docs/spec/ai.md §7-4`)을 쓴다. depth 6을 실전 속도로.
 
 | 메서드 | 동작 |
 |--------|------|

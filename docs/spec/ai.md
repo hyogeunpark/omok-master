@@ -20,14 +20,14 @@
 |--------|--------|------|
 | `easy` | 쉬움 | 즉시 이기는 수·즉시 막아야 하는 수 우선 처리. 이후 35% 확률로 **주변(반경 3) 랜덤 수**, 나머지는 휴리스틱 최선 수. 보드 전체 랜덤 금지 — 항상 게임 중심부 근처에 착수. |
 | `normal` | 보통 | Minimax depth=2. 공격/방어 균형. |
-| `hard` | 어려움 | VCF 선행 탐색 → Minimax depth=4. 방어 가중치 1.2. |
+| `hard` | 어려움 | VCF 선행 탐색 → Minimax depth=6 (TT+반복심화). 방어 가중치 1.2. |
 
 ### 2-1. 난이도별 파라미터
 
 | 파라미터 | easy | normal | hard |
 |----------|------|--------|------|
 | `SEARCH_RADIUS` | 1 | 2 | 2 |
-| `depth` | 0 (heuristic) | 2 | 4 |
+| `depth` | 0 (heuristic) | 2 | 6 (TT+반복심화) |
 | `candidateLimit` | — | 10 | 8 |
 | 공격 가중치 | — | 1.0 | 1.0 |
 | 방어 가중치 | — | 1.0 | 1.2 |
@@ -209,6 +209,38 @@ negamax(board, depth, α, β, color):
 - `src/ai/minimax.js` (신규): `getOrderedCandidates`, `alphabeta`, `minimaxMove`
 - `src/ai/cpu.js`: normal/hard에서 `minimaxMove` 호출로 변경
 
+### 7-4. 트랜스포지션 테이블 + 반복심화 (깊은 탐색 최적화)
+
+깊은 탐색(depth 6)을 실전 속도로 내기 위한 최적화. **동작(선택 수)은 바꾸지 않고 속도만 개선**하는 것이 목표다.
+Arena 측정: `d6 vs d4 = 0.75`(깊이가 강함) but d6은 5~6배 느림 → TT로 실전화. `minimaxMoveTT`로 별도 구현하고, 검증 통과 시 hard에 적용한다(기존 `minimaxMove`는 유지).
+
+**Zobrist 해싱**
+- 초기화 시 각 (교점 225 × 색 2)에 **시드 PRNG(mulberry32, seed 고정)**로 32비트 난수 2벌(`Z1`,`Z2`)을 만든다. `Math.random` 미사용 → 재현 가능.
+- 국면 해시 = 놓인 돌들의 `Z1`/`Z2` XOR 누적 + 착수 색 side 키. 착수/해제 시 **증분 XOR**(자기역원)로 O(1) 갱신.
+- TT 키는 `h1`(Map 키), 충돌 방지용 `h2`를 엔트리에 저장해 조회 시 일치 검사(사실상 64비트).
+
+**TT 엔트리 & 알파-베타 경계**
+```
+entry = { h2, depth, score, flag, move }   // flag: EXACT | LOWER | UPPER
+조회: entry.depth >= 요청 depth 이고 h2 일치 시
+  EXACT → score 반환
+  LOWER → alpha = max(alpha, score)
+  UPPER → beta  = min(beta, score)
+  alpha >= beta → score 반환(컷)
+저장: bestScore <= alphaOrig → UPPER / bestScore >= beta → LOWER / else EXACT
+```
+- TT는 **한 수 계산 동안만** 유지(매 `getMove` 새로 생성). 세대 간 오염 없음.
+
+**반복심화 (Iterative Deepening)**
+- depth 2 → 4 → 6 순으로 재탐색. 얕은 결과의 **최선 수를 다음 깊이에서 먼저 시도**해 알파-베타 컷을 늘린다.
+- TT의 저장 `move`도 정렬 우선순위로 사용.
+
+**정확성/성능 요건**
+- 같은 depth에서 `minimaxMoveTT`는 `minimaxMove`와 **동등한 가치의 수**를 반환한다(전술 퍼즐 동일 통과).
+- 같은 depth 고정 국면에서 TT판이 **더 빠르거나 최소 동등**해야 한다.
+- **채택 검증**: `d6-tt vs d4` 승률(≈0.75 유지)과 **1수 평균 시간**을 Arena로 측정해, 강함 유지 + 실전 속도(§4, 500ms 지향) 확보 시에만 hard를 depth 6으로 올린다. 미달 시 d4 유지.
+- **검증 결과(2026-07-10, 채택됨)**: 32개 국면에서 `minimaxMoveTT`가 plain과 **100% 동일 수**(정확성 확인). 속도 **2.9배**(중반 264ms→91ms/move, 500ms 안). 강함은 d6=plain 수준, d4 상대 우위 유지. → **hard를 depth 6 + TT로 채택**.
+
 ---
 
 ## 5. 오프닝 스왑 판단
@@ -263,3 +295,4 @@ swap if swapScore > perStoneThreshold
 | 2026-06-10 | §3-5 VCF 탐색 추가: hard 전용, Minimax 전 선행 실행, maxDepth=10(5쌍). |
 | 2026-06-10 | 스펙-코드 정합성 정리: doubleThreat 데드 파라미터 제거, scorePosition에 compositeBonus 통합, §1/§2 VCF 반영. |
 | 2026-07-10 | §3-5-1 방어 우선 예외 추가: 상대 즉시-5 위협 시 VCF 생략(Arena 복기로 발견한 패착 버그 수정). |
+| 2026-07-10 | §7-4 TT+반복심화 추가, hard를 depth 4→6으로 상향(2.9배 가속, 검증 채택). |

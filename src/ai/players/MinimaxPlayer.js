@@ -2,7 +2,7 @@
 import { BOARD_SIZE } from '../../engine/board.js';
 import { scorePosition, getCandidates, hasImmediate } from '../evaluate.js';
 import { isInOpeningZone, isCandidateDuplicate } from '../../engine/opening.js';
-import { minimaxMove } from '../minimax.js';
+import { minimaxMove, minimaxMoveTT } from '../minimax.js';
 import { vcfSearch } from '../vcf.js';
 
 // 상대가 지금 당장 5목을 완성할 수 있는 자리가 있는가 (VCF 방어 우선 판정용)
@@ -20,11 +20,12 @@ function randomEmpty(board) {
 }
 
 export class MinimaxPlayer {
-  constructor({ depth, candidateLimit, defenseWeight = 1.0, vcf = false }) {
+  constructor({ depth, candidateLimit, defenseWeight = 1.0, vcf = false, tt = false }) {
     this._depth          = depth;
     this._candidateLimit = candidateLimit;
     this._defenseWeight  = defenseWeight;
     this._vcf            = vcf;
+    this._tt             = tt; // 트랜스포지션 테이블 + 반복심화 (docs/spec/ai.md §7-4)
   }
 
   // VCF 선행(hard) → Minimax. 단 상대 즉시-5 위협이 있으면 VCF 생략(docs/spec/ai.md §3-5-1 방어 우선).
@@ -33,7 +34,9 @@ export class MinimaxPlayer {
       const vcfMove = vcfSearch(board.map(r => [...r]), color);
       if (vcfMove) return vcfMove;
     }
-    return minimaxMove(board, color, this._depth, this._candidateLimit);
+    return this._tt
+      ? minimaxMoveTT(board, color, this._depth, this._candidateLimit)
+      : minimaxMove(board, color, this._depth, this._candidateLimit);
   }
 
   getOpeningMove(board, color, step, branch) {
