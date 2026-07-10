@@ -4,7 +4,7 @@ import { checkWin, checkDraw } from '../../engine/win.js';
 import { isForbidden } from '../../engine/forbidden.js';
 
 // 시드 PRNG (mulberry32) — Math.random 미사용, 시드 재현 가능
-function mulberry32(seed) {
+export function mulberry32(seed) {
   let a = seed >>> 0;
   return () => {
     a = (a + 0x6d2b79f5) | 0;

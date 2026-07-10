@@ -123,10 +123,11 @@ function openingMode(opts) {
   const onGame = opts.save ? (r) => collected.push(r) : undefined;
 
   console.log(
-    `\nArena (오프닝 포함) — ${list.length} brains, ${opts.games} games/match, 타라구치-10\n`,
+    `\nArena (오프닝 포함) — ${list.length} brains, ${opts.games} games/match, 타라구치-10\n` +
+      `오프닝 위치 다양화: seed ${opts.seed}\n`,
   );
 
-  const { table, standings } = openingTournament(list, { games: opts.games, onGame });
+  const { table, standings } = openingTournament(list, { games: opts.games, onGame, seed: opts.seed });
 
   if (opts.save) {
     saveGames(collected, opts.save);

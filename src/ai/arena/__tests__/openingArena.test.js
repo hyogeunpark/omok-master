@@ -1,6 +1,7 @@
 // docs/spec/ai-arena.md §9 완료 기준 AC-A15~A18
 import { describe, it, expect } from 'vitest';
 import { isInOpeningZone } from '../../../engine/opening.js';
+import { mulberry32 } from '../arena.js';
 import { createAiPlayer } from '../../createAiPlayer.js';
 import { playOpeningGame } from '../openingArena.js';
 
@@ -59,6 +60,21 @@ describe('playOpeningGame', () => {
 
     const always = playOpeningGame(mockBrain({ swap: true, branch: 1 }), mockBrain({ swap: true, branch: 1 }), { aStartColor: 'B' });
     expect(always.swaps).toBeGreaterThanOrEqual(1);
+  });
+
+  it('AC-A19: rng를 주면 오프닝 place가 구역 내 무작위이고 같은 시드는 재현된다', () => {
+    const brains = () => [createAiPlayer('normal'), createAiPlayer('normal')];
+    const g1 = playOpeningGame(...brains(), { aStartColor: 'B', rng: mulberry32(42) });
+    const g2 = playOpeningGame(...brains(), { aStartColor: 'B', rng: mulberry32(42) });
+    const gDiff = playOpeningGame(...brains(), { aStartColor: 'B', rng: mulberry32(7) });
+
+    // 1수는 여전히 중앙, 오프닝 수는 구역 안
+    expect(g1.moves[0]).toMatchObject({ row: 7, col: 7 });
+    expect(isInOpeningZone(g1.moves[1].row, g1.moves[1].col, 2)).toBe(true);
+    // 같은 시드 → 동일 기보 (재현)
+    expect(g1.moves).toEqual(g2.moves);
+    // 다른 시드 → 다른 기보 (다양화)
+    expect(g1.moves).not.toEqual(gDiff.moves);
   });
 
   it('AC-A18: getOpeningMove가 구역 밖을 반환하면 그 두뇌가 ILLEGAL_MOVE로 진다', () => {

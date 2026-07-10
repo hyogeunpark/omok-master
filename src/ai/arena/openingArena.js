@@ -9,6 +9,18 @@ import {
   addOpeningCandidate,
   pickOpeningCandidate,
 } from '../../engine/game.js';
+import { isInOpeningZone } from '../../engine/opening.js';
+import { mulberry32 } from './arena.js';
+
+// §5-5-1 오프닝 place 다양화 — 구역 내 무작위 빈칸 (1수는 정중앙만)
+function randomZoneMove(board, step, branch, rng) {
+  const cells = [];
+  for (let r = 0; r < 15; r++)
+    for (let c = 0; c < 15; c++)
+      if (board[r][c] === null && isInOpeningZone(r, c, step, branch)) cells.push({ row: r, col: c });
+  if (cells.length === 0) return null;
+  return cells[Math.floor(rng() * cells.length)];
+}
 
 // 현재 상태에서 '행동해야 할 색' (Game.jsx getCpuOpeningAction과 동일 규칙)
 function actionColor(game) {
@@ -89,7 +101,7 @@ const snapshot = (game) => ({
 
 // §5-5 오프닝 포함 단판
 export function playOpeningGame(brainA, brainB, options = {}) {
-  const { aStartColor = 'B', maxMoves = 225 } = options;
+  const { aStartColor = 'B', maxMoves = 225, rng = null } = options;
   let game = createGame({ playerColor: aStartColor, useOpening: true });
   // brainA = player 역할(playerColor), brainB = cpu 역할(cpuColor). 스왑을 자동 추종.
   const brainOf = (color) => (color === game.playerColor ? brainA : brainB);
@@ -120,7 +132,13 @@ export function playOpeningGame(brainA, brainB, options = {}) {
 
     let next;
     try {
-      next = applyAction(game, brain);
+      // §5-5-1 다양화: 오프닝 place 수를 구역 내 무작위로 (1수 중앙은 그대로)
+      if (rng && game.opening && game.opening.phase === 'place') {
+        const m = randomZoneMove(game.board, game.opening.step, game.opening.branch, rng);
+        next = m ? placeStone(game, m.row, m.col) : applyAction(game, brain);
+      } else {
+        next = applyAction(game, brain);
+      }
     } catch {
       const off = sideOfBrain(brain);
       return result(off === 'A' ? 'B' : 'A', color === 'B' ? 'W' : 'B', 'EXCEPTION', off);
@@ -154,7 +172,7 @@ const nameOf = (b, fallback) => b.name || b.constructor?.name || fallback;
 
 // §5-6 오프닝 포함 매치 — aStartColor 교대로 다판, A/B 기준 집계
 export function openingMatch(brainA, brainB, options = {}) {
-  const { games = 100, onGame } = options;
+  const { games = 100, onGame, seed = null } = options;
   const nameA = options.labelA ?? nameOf(brainA, 'A');
   const nameB = options.labelB ?? nameOf(brainB, 'B');
 
@@ -168,7 +186,9 @@ export function openingMatch(brainA, brainB, options = {}) {
 
   for (let i = 0; i < games; i++) {
     const aStartColor = i % 2 === 0 ? 'B' : 'W';
-    const r = playOpeningGame(brainA, brainB, { ...options, aStartColor });
+    // 판마다 시드 seed+i 기반 rng (모든 매치가 같은 시드열 공유 → 공정·재현)
+    const rng = seed != null ? mulberry32(seed + i) : undefined;
+    const r = playOpeningGame(brainA, brainB, { ...options, aStartColor, rng });
     totalMoves += r.moves.length;
     totalSwaps += r.swaps;
 
