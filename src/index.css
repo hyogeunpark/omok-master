@@ -927,9 +927,62 @@ body {
 }
 
 .thinking-indicator {
-  font-size: 0.82rem;
-  color: var(--on-surface-dim);
-  animation: pulse 1.3s ease-in-out infinite;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+/* 골드 시머가 글자 위로 흐른다 */
+.thinking-text {
+  background: linear-gradient(
+    100deg,
+    var(--on-surface-dim) 0%, var(--on-surface-dim) 38%,
+    var(--accent) 50%,
+    var(--on-surface-dim) 62%, var(--on-surface-dim) 100%
+  );
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: thinkingShimmer 1.9s linear infinite;
+}
+
+@keyframes thinkingShimmer {
+  0%   { background-position: 120% 0; }
+  100% { background-position: -20% 0; }
+}
+
+/* 빛나는 골드 점 3개가 차례로 튀어오른다 */
+.thinking-dots {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.thinking-dots i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px rgba(212, 175, 55, 0.75);
+  animation: thinkingDot 1.2s ease-in-out infinite;
+}
+
+.thinking-dots i:nth-child(2) { animation-delay: 0.16s; }
+.thinking-dots i:nth-child(3) { animation-delay: 0.32s; }
+
+@keyframes thinkingDot {
+  0%, 60%, 100% { transform: translateY(0);    opacity: 0.35; }
+  30%           { transform: translateY(-4px); opacity: 1; }
+}
+
+/* 접근성: 모션 최소화 선호 시 애니메이션 없이 골드 텍스트만 */
+@media (prefers-reduced-motion: reduce) {
+  .thinking-text { animation: none; color: var(--accent); -webkit-text-fill-color: var(--accent); }
+  .thinking-dots i { animation: none; opacity: 0.7; }
 }
 
 .result-text {
