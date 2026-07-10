@@ -20,14 +20,14 @@
 |--------|--------|------|
 | `easy` | 쉬움 | 즉시 이기는 수·즉시 막아야 하는 수 우선 처리. 이후 35% 확률로 **주변(반경 3) 랜덤 수**, 나머지는 휴리스틱 최선 수. 보드 전체 랜덤 금지 — 항상 게임 중심부 근처에 착수. |
 | `normal` | 보통 | Minimax depth=2. 공격/방어 균형. |
-| `hard` | 어려움 | VCF 선행 탐색 → Minimax depth=4. 방어 가중치 1.2. |
+| `hard` | 어려움 | VCF 선행 → Minimax depth=6 (TT+반복심화+강제 수 연장). 방어 가중치 1.2. |
 
 ### 2-1. 난이도별 파라미터
 
 | 파라미터 | easy | normal | hard |
 |----------|------|--------|------|
 | `SEARCH_RADIUS` | 1 | 2 | 2 |
-| `depth` | 0 (heuristic) | 2 | 4 |
+| `depth` | 0 (heuristic) | 2 | 6 (TT+반복심화) |
 | `candidateLimit` | — | 10 | 8 |
 | 공격 가중치 | — | 1.0 | 1.0 |
 | 방어 가중치 | — | 1.0 | 1.2 |
@@ -209,6 +209,61 @@ negamax(board, depth, α, β, color):
 - `src/ai/minimax.js` (신규): `getOrderedCandidates`, `alphabeta`, `minimaxMove`
 - `src/ai/cpu.js`: normal/hard에서 `minimaxMove` 호출로 변경
 
+### 7-4. 트랜스포지션 테이블 + 반복심화 (깊은 탐색 최적화)
+
+깊은 탐색(depth 6)을 실전 속도로 내기 위한 최적화. **동작(선택 수)은 바꾸지 않고 속도만 개선**하는 것이 목표다.
+Arena 측정: `d6 vs d4 = 0.75`(깊이가 강함) but d6은 5~6배 느림 → TT로 실전화. `minimaxMoveTT`로 별도 구현하고, 검증 통과 시 hard에 적용한다(기존 `minimaxMove`는 유지).
+
+**Zobrist 해싱**
+- 초기화 시 각 (교점 225 × 색 2)에 **시드 PRNG(mulberry32, seed 고정)**로 32비트 난수 2벌(`Z1`,`Z2`)을 만든다. `Math.random` 미사용 → 재현 가능.
+- 국면 해시 = 놓인 돌들의 `Z1`/`Z2` XOR 누적 + 착수 색 side 키. 착수/해제 시 **증분 XOR**(자기역원)로 O(1) 갱신.
+- TT 키는 `h1`(Map 키), 충돌 방지용 `h2`를 엔트리에 저장해 조회 시 일치 검사(사실상 64비트).
+
+**TT 엔트리 & 알파-베타 경계**
+```
+entry = { h2, depth, score, flag, move }   // flag: EXACT | LOWER | UPPER
+조회: entry.depth >= 요청 depth 이고 h2 일치 시
+  EXACT → score 반환
+  LOWER → alpha = max(alpha, score)
+  UPPER → beta  = min(beta, score)
+  alpha >= beta → score 반환(컷)
+저장: bestScore <= alphaOrig → UPPER / bestScore >= beta → LOWER / else EXACT
+```
+- TT는 **한 수 계산 동안만** 유지(매 `getMove` 새로 생성). 세대 간 오염 없음.
+
+**반복심화 (Iterative Deepening)**
+- depth 2 → 4 → 6 순으로 재탐색. 얕은 결과의 **최선 수를 다음 깊이에서 먼저 시도**해 알파-베타 컷을 늘린다.
+- TT의 저장 `move`도 정렬 우선순위로 사용.
+
+**정확성/성능 요건**
+- 같은 depth에서 `minimaxMoveTT`는 `minimaxMove`와 **동등한 가치의 수**를 반환한다(전술 퍼즐 동일 통과).
+- 같은 depth 고정 국면에서 TT판이 **더 빠르거나 최소 동등**해야 한다.
+- **채택 검증**: `d6-tt vs d4` 승률(≈0.75 유지)과 **1수 평균 시간**을 Arena로 측정해, 강함 유지 + 실전 속도(§4, 500ms 지향) 확보 시에만 hard를 depth 6으로 올린다. 미달 시 d4 유지.
+- **검증 결과(2026-07-10, 채택됨)**: 32개 국면에서 `minimaxMoveTT`가 plain과 **100% 동일 수**(정확성 확인). 속도 **2.9배**(중반 264ms→91ms/move, 500ms 안). 강함은 d6=plain 수준, d4 상대 우위 유지. → **hard를 depth 6 + TT로 채택**.
+
+### 7-5. 강제 수 탐색 연장 (Threat Extensions) — 깊은 수순 읽기
+
+고수의 "15~20수 앞 읽기"는 **전폭 탐색이 아니라 강제 수순(위협)을 좁게 깊이 읽는 것**이다.
+이를 minimax에 안전하게 넣는 표준 기법이 **탐색 연장**이다.
+
+**규칙**: 어떤 후보 수가 **4(열린/닫힌)를 만드는 강제 수**이면, 그 자식을 `depth`를 **줄이지 않고**(연장) 탐색한다. 조용한 수는 기존대로 `depth-1`. 강제 수순(연속 4)을 따라갈 땐 깊이가 안 줄어 15~20수까지 자연히 깊어진다.
+
+**핵심 — 오탐 불가**: 이는 **순수 minimax의 깊이 배분만 바꾸는 것**이라 별도의 "승리 판정"이 없다. 따라서 v1 VCT 같은 **오탐이 원리적으로 발생하지 않는다**(결과는 항상 정확, 더 깊이 볼 뿐).
+
+**한계(폭주 방지)**: 연장이 무한정 되지 않도록 **연장 예산 `ext`**(플라이 수)를 둔다. 강제 수로 연장할 때마다 `ext`를 1 소비하고, 소진되면 연장 없이 `depth-1`. 실효 최대 깊이 = `depth + ext`.
+
+**적용**: `minimaxMoveTT(board, color, depth, limit, extBudget, nodeBudget)`. `extBudget=0`이면 기존 동작과 동일. hard에 `extBudget>0` 적용은 Arena 검증(강함↑ + 속도) 통과 시.
+
+**최악 시간 캡 (node budget)**: 복잡한 국면에서 연장이 응답을 ~1초까지 끌 수 있어, **탐색 노드 수 상한 `nodeBudget`**을 둔다. 반복심화 중 한 깊이가 예산을 초과하면 그 깊이 탐색을 **중단하고 직전 깊이의 최선 수를 반환**한다(우아한 폴백). **노드 수 기준이라 결정적**(벽시계 아님) → Arena 재현성 유지. 예산은 최악 응답이 ~500ms 이내가 되도록 실측으로 정한다. 초과는 가장 복잡한 소수 국면에서만 발생하며, 그 국면만 미세하게 얕게 본다(강함 영향 최소).
+
+**TT 상호작용**: 연장으로 같은 국면이 서로 다른 잔여 연장예산에서 탐색될 수 있으므로, TT 재사용은 `entry.depth >= depth && entry.ext >= ext`일 때만 허용(보수적).
+
+**검증 요건**:
+- 깊은 강제승이 있는 국면에서 연장판이 그 승리 수를 찾는다(기존 depth로는 놓치던 것).
+- `d6+ext vs d6`(연장 없음) Arena 승률 > 0.5, 1수 평균 시간이 실전 허용치 내.
+
+**검증 결과(2026-07-10, 채택됨)**: `ext=8` 연장이 `d6-plain`을 **0.70~0.75**로 이김(강제 수순 깊이 읽기 효과). 무제한은 최악 ~1s이나, `nodeBudget=10000` 캡을 넣으면 **최악 ~700ms(평균 ~300ms)**로 제한되고 강함은 거의 유지(캡 vs 무제한 ≈ 동등, d6-plain 상대 0.60). → **hard에 `ext=8, nodeBudget=10000` 채택.** (노드당 비용이 커 노드 수는 적어도 시간이 드는데, 캡이 그 소수 복잡 국면만 얕게 본다.)
+
 ---
 
 ## 5. 오프닝 스왑 판단
@@ -263,3 +318,5 @@ swap if swapScore > perStoneThreshold
 | 2026-06-10 | §3-5 VCF 탐색 추가: hard 전용, Minimax 전 선행 실행, maxDepth=10(5쌍). |
 | 2026-06-10 | 스펙-코드 정합성 정리: doubleThreat 데드 파라미터 제거, scorePosition에 compositeBonus 통합, §1/§2 VCF 반영. |
 | 2026-07-10 | §3-5-1 방어 우선 예외 추가: 상대 즉시-5 위협 시 VCF 생략(Arena 복기로 발견한 패착 버그 수정). |
+| 2026-07-10 | §7-4 TT+반복심화 추가, hard를 depth 4→6으로 상향(2.9배 가속, 검증 채택). |
+| 2026-07-10 | §7-5 강제 수 탐색 연장 + node 캡 추가, hard에 ext=8/nodeBudget=10000 채택(d6 대비 강함↑, 최악 ~700ms). |
