@@ -269,7 +269,12 @@ export default function Game({ player, difficulty, onExit }) {
 
         {/* 상태 표시 */}
         <div className="game-status">
-          {thinking && <span className="thinking-indicator">CPU 생각 중…</span>}
+          {thinking && (
+            <span className="thinking-indicator">
+              <span className="thinking-text">CPU가 수를 읽는 중</span>
+              <span className="thinking-dots"><i /><i /><i /></span>
+            </span>
+          )}
           {!thinking && !msg && !op && (
             <span className="turn-text">
               {game.currentTurn === game.playerColor ? '내 차례' : 'CPU 차례'}
