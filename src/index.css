@@ -206,6 +206,10 @@ body {
   background: var(--surface-low);
   padding-bottom: env(safe-area-inset-bottom, 0);
   flex-shrink: 0;
+  /* docs/spec/nav.md §1 — 하단 고정: 콘텐츠가 길어도 뷰포트 하단에 붙어 있게 */
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
 }
 
 .bottom-nav-item {
