@@ -5,4 +5,4 @@
 | 문서 | 제목 | 상태 |
 |------|------|------|
 | [001-cloud-sync-firebase.md](001-cloud-sync-firebase.md) | 기보·프로필 클라우드 동기화: Firebase Spark 플랜 채택 | 결정됨 (미착수) |
-| [002-d4-upgrade-rejected.md](002-d4-upgrade-rejected.md) | d4(hard) 두뇌 강화 시도: Arena 검증으로 기각 | 기각됨 (원본 유지) |
+| [002-d4-upgrade-rejected.md](002-d4-upgrade-rejected.md) | hard 두뇌 강화: 튜닝/VCT 기각, VCF 수정 + depth 6(TT) 채택 | 부분 채택 |
