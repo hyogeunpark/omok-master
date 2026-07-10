@@ -58,7 +58,7 @@ createAiPlayer(difficulty: 'easy' | 'normal' | 'hard'): AiPlayer
 |-----------|------------|
 | `easy` | `HeuristicPlayer` |
 | `normal` | `MinimaxPlayer({ depth: 2, candidateLimit: 10, defenseWeight: 1.0 })` |
-| `hard` | `MinimaxPlayer({ depth: 6, candidateLimit: 8,  defenseWeight: 1.2, vcf: true, tt: true })` |
+| `hard` | `MinimaxPlayer({ depth: 6, candidateLimit: 8, defenseWeight: 1.2, vcf: true, tt: true, ext: 8, nodeBudget: 10000 })` |
 
 ---
 
@@ -86,6 +86,7 @@ new MinimaxPlayer({ depth, candidateLimit, defenseWeight, vcf = false, tt = fals
 ```
 
 - `tt: true`이면 트랜스포지션 테이블 + 반복심화 탐색(`minimaxMoveTT`, `docs/spec/ai.md §7-4`)을 쓴다. depth 6을 실전 속도로.
+- `ext`(연장 예산)·`nodeBudget`(최악 시간 캡)은 강제 수 탐색 연장(`docs/spec/ai.md §7-5`). 강제 수순을 깊이 읽어 강함↑, 캡으로 응답시간 제한.
 
 | 메서드 | 동작 |
 |--------|------|

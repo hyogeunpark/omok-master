@@ -1,10 +1,29 @@
 // docs/spec/ai.md §7 Minimax (Negamax + Alpha-Beta)
 import { isForbidden } from '../engine/forbidden.js';
 import { checkWin } from '../engine/win.js';
-import { BOARD_SIZE } from '../engine/board.js';
+import { BOARD_SIZE, inBounds } from '../engine/board.js';
 import { getCandidates, evaluateBoard, hasImmediate, scorePosition } from './evaluate.js';
 
 const WIN_SCORE = 100000;
+const DIRS = [[0, 1], [1, 0], [1, 1], [1, -1]];
+
+// (row,col)에 color를 두면 '4(열린/닫힌)'가 생기는가 = 상대를 강제하는 수 (docs/spec/ai.md §7-5)
+function makesFour(board, row, col, color) {
+  board[row][col] = color;
+  let four = false;
+  for (const [dr, dc] of DIRS) {
+    let cnt = 1;
+    let r = row + dr, c = col + dc;
+    while (inBounds(r, c) && board[r][c] === color) { cnt++; r += dr; c += dc; }
+    const openP = inBounds(r, c) && board[r][c] === null;
+    r = row - dr; c = col - dc;
+    while (inBounds(r, c) && board[r][c] === color) { cnt++; r -= dr; c -= dc; }
+    const openN = inBounds(r, c) && board[r][c] === null;
+    if (cnt === 4 && (openP || openN)) { four = true; break; }
+  }
+  board[row][col] = null;
+  return four;
+}
 
 // docs/spec/ai.md §7-2: 수 정렬 — 즉시 승리 → 즉시 차단 → 휴리스틱 상위 limit개
 function getOrderedCandidates(board, color, limit) {
@@ -105,13 +124,16 @@ function hashBoard(board, color) {
 
 const EXACT = 0, LOWER = 1, UPPER = 2;
 
-// TT 적용 Negamax (docs/spec/ai.md §7-4)
-function alphabetaTT(board, depth, alpha, beta, color, limit, h1, h2, tt) {
-  if (depth === 0) return evaluateBoard(board, color);
+// TT 적용 Negamax + 강제 수 연장 (docs/spec/ai.md §7-4, §7-5)
+// ctx = { nodes, budget, aborted } — node 예산 초과 시 중단(우아한 폴백)
+function alphabetaTT(board, depth, alpha, beta, color, limit, h1, h2, tt, ext, ctx) {
+  if (++ctx.nodes > ctx.budget) ctx.aborted = true;
+  if (ctx.aborted) return 0; // 중단: 반환값은 폴백에서 폐기됨
+  if (depth <= 0) return evaluateBoard(board, color);
 
   const alphaOrig = alpha;
   const e = tt.get(h1);
-  const hit = e && e.h2 === h2 && e.depth >= depth;
+  const hit = e && e.h2 === h2 && e.depth >= depth && e.ext >= ext;
   if (hit) {
     if (e.flag === EXACT) return e.score;
     if (e.flag === LOWER) alpha = Math.max(alpha, e.score);
@@ -131,14 +153,17 @@ function alphabetaTT(board, depth, alpha, beta, color, limit, h1, h2, tt) {
 
   let best = -Infinity, bestMove = null;
   for (const { row, col } of candidates) {
+    // §7-5 강제 수(4 생성)이면 depth를 안 깎고 연장 (예산 ext 소비)
+    const forcing = ext > 0 && makesFour(board, row, col, color);
     board[row][col] = color;
     const idx = row * BOARD_SIZE + col, ci = colorIdx(color);
     const nh1 = h1 ^ Z1[idx][ci] ^ SIDE1;
     const nh2 = h2 ^ Z2[idx][ci] ^ SIDE2;
     const score = checkWin(board, row, col, color)
       ? WIN_SCORE + depth
-      : -alphabetaTT(board, depth - 1, -beta, -alpha, opp, limit, nh1, nh2, tt);
-    board[row][col] = null;
+      : -alphabetaTT(board, forcing ? depth : depth - 1, -beta, -alpha, opp, limit, nh1, nh2, tt, forcing ? ext - 1 : ext, ctx);
+    board[row][col] = null; // 항상 복구 (중단 시에도 board 무손상)
+    if (ctx.aborted) return best;
 
     if (score > best) { best = score; bestMove = { row, col }; }
     if (best > alpha) alpha = best;
@@ -146,12 +171,13 @@ function alphabetaTT(board, depth, alpha, beta, color, limit, h1, h2, tt) {
   }
 
   const flag = best <= alphaOrig ? UPPER : best >= beta ? LOWER : EXACT;
-  tt.set(h1, { h2, depth, score: best, flag, move: bestMove });
+  tt.set(h1, { h2, depth, ext, score: best, flag, move: bestMove });
   return best;
 }
 
-// 반복심화 + TT 최선 수 (docs/spec/ai.md §7-4). depth 2→4→…→maxDepth
-export function minimaxMoveTT(board, color, maxDepth, candidateLimit) {
+// 반복심화 + TT 최선 수 (docs/spec/ai.md §7-4).
+// extBudget>0: 강제 수 연장(§7-5). nodeBudget: 최악 시간 캡(초과 시 직전 깊이 폴백).
+export function minimaxMoveTT(board, color, maxDepth, candidateLimit, extBudget = 0, nodeBudget = Infinity) {
   const rootCands = getOrderedCandidates(board, color, candidateLimit);
   if (rootCands.length === 0) return { row: 7, col: 7 };
 
@@ -161,6 +187,7 @@ export function minimaxMoveTT(board, color, maxDepth, candidateLimit) {
   }
 
   const tt = new Map();
+  const ctx = { nodes: 0, budget: nodeBudget, aborted: false };
   let bestMove = rootCands[0];
 
   for (let d = 2; d <= maxDepth; d += 2) {
@@ -170,17 +197,20 @@ export function minimaxMoveTT(board, color, maxDepth, candidateLimit) {
 
     let best = -Infinity, bm = bestMove, alpha = -Infinity;
     for (const { row, col } of ordered) {
+      const forcing = extBudget > 0 && makesFour(board, row, col, color);
       board[row][col] = color;
       const idx = row * BOARD_SIZE + col, ci = colorIdx(color);
       const nh1 = rh1 ^ Z1[idx][ci] ^ SIDE1;
       const nh2 = rh2 ^ Z2[idx][ci] ^ SIDE2;
       const score = checkWin(board, row, col, color)
         ? WIN_SCORE + d
-        : -alphabetaTT(board, d - 1, -Infinity, -alpha, opp, candidateLimit, nh1, nh2, tt);
+        : -alphabetaTT(board, forcing ? d : d - 1, -Infinity, -alpha, opp, candidateLimit, nh1, nh2, tt, forcing ? extBudget - 1 : extBudget, ctx);
       board[row][col] = null;
+      if (ctx.aborted) break;
       if (score > best) { best = score; bm = { row, col }; }
       if (best > alpha) alpha = best;
     }
+    if (ctx.aborted) break; // 이 깊이 미완 → 직전 깊이의 bestMove 유지
     bestMove = bm;
   }
   return bestMove;

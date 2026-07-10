@@ -51,3 +51,21 @@ describe('minimaxMoveTT — 정확성 (기존 minimaxMove와 동등)', () => {
     expect(JSON.stringify(b)).toBe(snapshot);
   });
 });
+
+describe('minimaxMoveTT — 강제 수 연장 + node 캡 (docs/spec/ai.md §7-5)', () => {
+  it('연장(ext>0)해도 기본 전술을 정확히 둔다', () => {
+    const win = place([[7, 3, 'B'], [7, 4, 'B'], [7, 5, 'B'], [7, 6, 'B'], [7, 2, 'W']]);
+    expect(minimaxMoveTT(win, 'B', 6, 8, 8)).toEqual({ row: 7, col: 7 });
+    const block = place([[7, 3, 'W'], [7, 4, 'W'], [7, 5, 'W'], [7, 6, 'W'], [7, 2, 'B']]);
+    expect(minimaxMoveTT(block, 'B', 6, 8, 8)).toEqual({ row: 7, col: 7 });
+  });
+
+  it('node 캡이 걸려도 합법 수를 반환하고 board를 복구한다', () => {
+    const stones = [[7, 7, 'B'], [7, 8, 'W'], [6, 7, 'B'], [8, 8, 'W'], [7, 6, 'B']];
+    const b = place(stones);
+    const snapshot = JSON.stringify(b);
+    const m = minimaxMoveTT(b, 'W', 6, 8, 8, 200); // 아주 작은 예산 → 캡 발동
+    expect(b[m.row][m.col]).toBe(null); // 빈 칸
+    expect(JSON.stringify(b)).toBe(snapshot); // 부작용 없음
+  });
+});
