@@ -60,6 +60,15 @@ describe('minimaxMoveTT — 강제 수 연장 + node 캡 (docs/spec/ai.md §7-5)
     expect(minimaxMoveTT(block, 'B', 6, 8, 8)).toEqual({ row: 7, col: 7 });
   });
 
+  it('AC-W1: onDepth가 반복심화 각 깊이마다 호출되고 최종 수는 동일하다', () => {
+    const stones = [[7, 7, 'W'], [8, 7, 'B'], [7, 8, 'W'], [6, 6, 'B'], [7, 9, 'W']];
+    const seen = [];
+    const withCb = minimaxMoveTT(place(stones), 'B', 6, 8, 8, Infinity, (d) => seen.push(d));
+    const without = minimaxMoveTT(place(stones), 'B', 6, 8, 8);
+    expect(seen).toEqual([2, 4, 6]);       // 반복심화 깊이 보고
+    expect(withCb).toEqual(without);       // 콜백이 결과를 바꾸지 않음
+  });
+
   it('node 캡이 걸려도 합법 수를 반환하고 board를 복구한다', () => {
     const stones = [[7, 7, 'B'], [7, 8, 'W'], [6, 7, 'B'], [8, 8, 'W'], [7, 6, 'B']];
     const b = place(stones);
