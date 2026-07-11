@@ -177,7 +177,7 @@ function alphabetaTT(board, depth, alpha, beta, color, limit, h1, h2, tt, ext, c
 
 // 반복심화 + TT 최선 수 (docs/spec/ai.md §7-4).
 // extBudget>0: 강제 수 연장(§7-5). nodeBudget: 최악 시간 캡(초과 시 직전 깊이 폴백).
-export function minimaxMoveTT(board, color, maxDepth, candidateLimit, extBudget = 0, nodeBudget = Infinity) {
+export function minimaxMoveTT(board, color, maxDepth, candidateLimit, extBudget = 0, nodeBudget = Infinity, onDepth = null) {
   const rootCands = getOrderedCandidates(board, color, candidateLimit);
   if (rootCands.length === 0) return { row: 7, col: 7 };
 
@@ -212,6 +212,7 @@ export function minimaxMoveTT(board, color, maxDepth, candidateLimit, extBudget 
     }
     if (ctx.aborted) break; // 이 깊이 미완 → 직전 깊이의 bestMove 유지
     bestMove = bm;
+    if (onDepth) onDepth(d); // 반복심화 진행 보고 (docs/spec/ai-player.md §6-A-2)
   }
   return bestMove;
 }
