@@ -17,8 +17,8 @@ describe('minimaxMove/TT — margin=0 결정적', () => {
     const a = minimaxMove(place(stones), 'W', 4, 8, 0);
     const b = minimaxMove(place(stones), 'W', 4, 8, 0);
     expect(a).toEqual(b);
-    const c = minimaxMoveTT(place(stones), 'W', 6, 8, 8, Infinity, 0);
-    const d = minimaxMoveTT(place(stones), 'W', 6, 8, 8, Infinity, 0);
+    const c = minimaxMoveTT(place(stones), 'W', 6, 8, 8, Infinity, null, 0);
+    const d = minimaxMoveTT(place(stones), 'W', 6, 8, 8, Infinity, null, 0);
     expect(c).toEqual(d);
   });
 });

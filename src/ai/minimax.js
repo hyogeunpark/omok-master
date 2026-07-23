@@ -189,8 +189,8 @@ function alphabetaTT(board, depth, alpha, beta, color, limit, h1, h2, tt, ext, c
 }
 
 // 반복심화 + TT 최선 수 (docs/spec/ai.md §7-4).
-// extBudget>0: 강제 수 연장(§7-5). nodeBudget: 최악 시간 캡. margin>0: 최선점 근처 랜덤(§7-6).
-export function minimaxMoveTT(board, color, maxDepth, candidateLimit, extBudget = 0, nodeBudget = Infinity, margin = 0) {
+// extBudget>0: 강제 수 연장(§7-5). nodeBudget: 최악 시간 캡. onDepth: 진행 콜백(§6-A). margin>0: 최선점 근처 랜덤(§7-6).
+export function minimaxMoveTT(board, color, maxDepth, candidateLimit, extBudget = 0, nodeBudget = Infinity, onDepth = null, margin = 0) {
   const rootCands = getOrderedCandidates(board, color, candidateLimit);
   if (rootCands.length === 0) return { row: 7, col: 7 };
 
@@ -225,6 +225,7 @@ export function minimaxMoveTT(board, color, maxDepth, candidateLimit, extBudget 
     }
     if (ctx.aborted) break; // 이 깊이 미완 → 직전 깊이의 bestMove 유지
     bestMove = bm;
+    if (onDepth) onDepth(d); // 반복심화 진행 보고 (docs/spec/ai-player.md §6-A-2)
   }
 
   // §7-6 랜덤: 최종 깊이 루트를 전체 창으로 재평가(warm TT라 저렴)해 정확 점수 확보 후 근처 랜덤.

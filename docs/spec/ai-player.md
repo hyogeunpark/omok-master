@@ -141,6 +141,39 @@ export default function Game({ player, onExit }) {
 
 ---
 
+## 6-A. Web Worker 실행 + 탐색 진행 표시
+
+hard의 탐색은 최대 ~1초 걸리며 **동기(블로킹)**라, 메인 스레드에서 실행하면 계산 중 화면이 얼어 진행 표시(깊이 카운터)를 실시간으로 못 그린다. 이를 해결하기 위해 **일반 대국의 `getMove`를 Web Worker(별도 스레드)에서 실행**한다.
+
+### 6-A-1. 구조
+
+- `src/ai/aiWorker.js` (신규): `{ board, color, difficulty }` 메시지를 받아 `createAiPlayer(difficulty).getMove(board, color, onDepth)`를 실행.
+  - 반복심화가 깊이 하나를 끝낼 때마다 `postMessage({ type: 'depth', depth })` — 메인 스레드는 워커가 블로킹 중이어도 이 메시지를 **실시간 수신**(워커 블로킹 ≠ 메인 블로킹).
+  - 완료 시 `postMessage({ type: 'move', move })`.
+- 오프닝 메서드(`getOpeningMove`/`shouldSwap`/…)는 빠르므로 **메인 스레드에서 그대로** 호출한다. 워커는 일반 대국 `getMove`만 담당.
+
+### 6-A-2. onDepth 콜백
+
+- `minimaxMoveTT(..., onDepth?)`: 반복심화 각 깊이 완료 시 `onDepth(d)` 호출(선택 인자, 미지정 시 무영향 → 기존 호출부·테스트 무회귀).
+- `MinimaxPlayer.getMove(board, color, onDepth?)`: `onDepth`를 `minimaxMoveTT`에 전달. `HeuristicPlayer.getMove`는 3번째 인자를 무시(진행 없음).
+- 진행 깊이는 **실제 탐색 깊이**(2→4→6). 페이크 아님.
+
+### 6-A-3. UI (Game.jsx)
+
+- CPU 차례(일반 대국)에 워커로 요청 → `depth` 메시지마다 `thinkingDepth` 상태 갱신 → 인디케이터가 **"CPU가 N수 앞을 읽는 중"**을 실시간 표시(+ 미니 보드 스캔).
+- 보너스: 메인 스레드가 안 얼어 판·애니메이션이 부드럽다.
+- 워커는 컴포넌트 마운트 시 1개 생성, 언마운트 시 `terminate`. 게임 리셋/중복 요청은 요청 무시로 방어.
+
+### 6-A-4. 완료 기준
+
+| ID | 조건 |
+|----|------|
+| AC-W1 | `minimaxMoveTT`에 `onDepth`를 주면 반복심화 각 깊이마다 호출되고, 최종 수는 `onDepth` 없을 때와 동일 |
+| AC-W2 | 워커가 `getMove` 결과를 메인 스레드로 반환해 CPU가 정상 착수(게임 흐름 유지) |
+| AC-W3 | hard 대국 중 인디케이터에 실제 탐색 깊이가 갱신 표시된다 |
+
+---
+
 ## 7. 완료 기준 (Acceptance)
 
 | ID | 조건 |

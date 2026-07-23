@@ -33,7 +33,8 @@ export class MinimaxPlayer {
   }
 
   // VCF 선행(hard) → Minimax. 단 상대 즉시-5 위협이 있으면 VCF 생략(docs/spec/ai.md §3-5-1 방어 우선).
-  getMove(board, color) {
+  // onDepth: 반복심화 진행 콜백(선택, 워커에서 실시간 깊이 표시용 — docs/spec/ai-player.md §6-A).
+  getMove(board, color, onDepth = null) {
     if (this._vcf && !oppHasImmediateWin(board, color)) {
       const vcfMove = vcfSearch(board.map(r => [...r]), color);
       if (vcfMove) return vcfMove;
@@ -45,7 +46,7 @@ export class MinimaxPlayer {
         if (board[r][c] !== null) stones++;
     const margin = stones <= this._randomUntil ? this._margin : 0;
     return this._tt
-      ? minimaxMoveTT(board, color, this._depth, this._candidateLimit, this._ext, this._nodeBudget, margin)
+      ? minimaxMoveTT(board, color, this._depth, this._candidateLimit, this._ext, this._nodeBudget, onDepth, margin)
       : minimaxMove(board, color, this._depth, this._candidateLimit, margin);
   }
 

@@ -45,8 +45,39 @@ function getCpuOpeningAction(game) {
 export default function Game({ player, difficulty, onExit }) {
   const [game, setGame] = useState(() => createGame());
   const [thinking, setThinking] = useState(false);
+  const [thinkingDepth, setThinkingDepth] = useState(0); // hard 실시간 탐색 깊이 (§6-A)
   const pendingRef = useRef(false);
   const savedRef = useRef(false);
+  const workerRef = useRef(null);
+  const reqIdRef = useRef(0);
+  const thinkStartRef = useRef(0);
+  const applyTimerRef = useRef(null);
+
+  // ── AI 탐색 Web Worker (docs/spec/ai-player.md §6-A) ──
+  useEffect(() => {
+    const worker = new Worker(new URL('../ai/aiWorker.js', import.meta.url), { type: 'module' });
+    workerRef.current = worker;
+    worker.onmessage = (e) => {
+      const { type, depth, move, reqId } = e.data;
+      if (reqId !== reqIdRef.current) return; // 오래된 응답 무시
+      if (type === 'depth') {
+        setThinkingDepth(depth);
+      } else if (type === 'move') {
+        const MIN_MS = 320; // 일관된 "생각하는" 텀 (fast 난이도도 툭 튀지 않게)
+        const wait = Math.max(0, MIN_MS - (Date.now() - thinkStartRef.current));
+        applyTimerRef.current = setTimeout(() => {
+          if (reqId !== reqIdRef.current) return;
+          setGame((g) => placeStone(g, move.row, move.col));
+          pendingRef.current = false;
+          setThinking(false);
+        }, wait);
+      } else if (type === 'error') {
+        pendingRef.current = false;
+        setThinking(false);
+      }
+    };
+    return () => { clearTimeout(applyTimerRef.current); worker.terminate(); };
+  }, []);
 
   // ── 오프닝 + 일반 CPU 처리 ──
   const op = game.opening;
@@ -59,43 +90,51 @@ export default function Game({ player, difficulty, onExit }) {
     if (!needsCpuAction || pendingRef.current) return;
     pendingRef.current = true;
     setThinking(true);
+    setThinkingDepth(0);
 
-    const id = setTimeout(() => {
-      setGame(g => {
-        const action = getCpuOpeningAction(g);
-        if (action === 'place') {
-          const op = g.opening;
-          const move = player.getOpeningMove(g.board.map(r => [...r]), g.cpuColor, op.step, op.branch);
-          return placeStone(g, move.row, move.col);
-        }
-        if (action === 'swap') {
-          const justPlayed = g.opening.step % 2 === 1 ? 'B' : 'W';
-          const doSwap = player.shouldSwap(g.board.map(r => [...r]), justPlayed);
-          return doSwap ? performOpeningSwap(g) : skipOpeningSwap(g);
-        }
-        if (action === 'branch') {
-          const branch = player.selectBranch(g.board.map(r => [...r]));
-          return selectOpeningBranch(g, branch);
-        }
-        if (action === 'candidates') {
-          const cands = player.proposeOpeningCandidates(g.board.map(r => [...r]));
-          let next = g;
-          for (const { row, col } of cands) next = addOpeningCandidate(next, row, col);
-          return next;
-        }
-        if (action === 'pick-candidate') {
+    // 오프닝 액션(스왑/분기/후보/구역 착수): 빠르므로 메인 스레드에서 동기 처리
+    if (isOpeningActive && cpuAction) {
+      const id = setTimeout(() => {
+        setGame(g => {
+          const action = getCpuOpeningAction(g);
+          if (action === 'place') {
+            const op = g.opening;
+            const move = player.getOpeningMove(g.board.map(r => [...r]), g.cpuColor, op.step, op.branch);
+            return placeStone(g, move.row, move.col);
+          }
+          if (action === 'swap') {
+            const justPlayed = g.opening.step % 2 === 1 ? 'B' : 'W';
+            const doSwap = player.shouldSwap(g.board.map(r => [...r]), justPlayed);
+            return doSwap ? performOpeningSwap(g) : skipOpeningSwap(g);
+          }
+          if (action === 'branch') {
+            return selectOpeningBranch(g, player.selectBranch(g.board.map(r => [...r])));
+          }
+          if (action === 'candidates') {
+            let next = g;
+            for (const { row, col } of player.proposeOpeningCandidates(g.board.map(r => [...r]))) next = addOpeningCandidate(next, row, col);
+            return next;
+          }
           const pick = player.pickOpeningCandidate(g.board.map(r => [...r]), g.opening.candidates);
           return pickOpeningCandidate(g, pick.row, pick.col);
-        }
-        const move = player.getMove(g.board.map(r => [...r]), g.cpuColor);
-        return placeStone(g, move.row, move.col);
-      });
-      pendingRef.current = false;
-      setThinking(false);
-    }, 300);
+        });
+        pendingRef.current = false;
+        setThinking(false);
+      }, 300);
+      return () => { clearTimeout(id); pendingRef.current = false; };
+    }
 
-    return () => { clearTimeout(id); pendingRef.current = false; };
-  }, [needsCpuAction, game.opening?.phase, game.opening?.step, game.currentTurn, player]);
+    // 일반 대국 getMove: 워커에서 탐색 (실시간 깊이 보고 + 메인 스레드 안 얼음)
+    const reqId = ++reqIdRef.current;
+    thinkStartRef.current = Date.now();
+    workerRef.current.postMessage({
+      board: game.board.map(r => [...r]),
+      color: game.cpuColor,
+      difficulty,
+      reqId,
+    });
+    // 응답은 worker.onmessage에서 처리
+  }, [needsCpuAction, game.opening?.phase, game.opening?.step, game.currentTurn, player, difficulty]);
 
   // ── 플레이어 입력 ──
   const playerSwapOwner = (() => {
@@ -271,8 +310,10 @@ export default function Game({ player, difficulty, onExit }) {
         <div className="game-status">
           {thinking && (
             <span className="thinking-indicator">
-              <span className="thinking-text">CPU가 수를 읽는 중</span>
-              <span className="thinking-dots"><i /><i /><i /></span>
+              <span className="thinking-board" aria-hidden="true"><i className="thinking-hit" /></span>
+              <span className="thinking-text">
+                CPU가 {thinkingDepth > 0 ? `${thinkingDepth}수 앞을` : '수를'} 읽는 중
+              </span>
             </span>
           )}
           {!thinking && !msg && !op && (
