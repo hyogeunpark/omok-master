@@ -66,25 +66,38 @@ function alphabeta(board, depth, alpha, beta, color, limit) {
   return best;
 }
 
-// 최선 수 반환 (docs/spec/ai.md §7-1)
-export function minimaxMove(board, color, depth, candidateLimit) {
+// §7-6 최선점과의 차 margin 이내 수들 중 랜덤 (margin=0이면 최고점 첫 수 = 결정적)
+function pickAmongBest(scored, margin) {
+  let best = -Infinity;
+  for (const s of scored) if (s.score > best) best = s.score;
+  if (margin <= 0) {
+    for (const s of scored) if (s.score === best) return { row: s.row, col: s.col };
+  }
+  const pool = scored.filter((s) => s.score >= best - margin);
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  return { row: pick.row, col: pick.col };
+}
+
+// 최선 수 반환 (docs/spec/ai.md §7-1). margin>0이면 최선점 근처 수 중 랜덤(§7-6)
+export function minimaxMove(board, color, depth, candidateLimit, margin = 0) {
   const candidates = getOrderedCandidates(board, color, candidateLimit);
   if (candidates.length === 0) return { row: 7, col: 7 };
 
-  // 즉시 승리 수가 있으면 바로 반환
+  // 즉시 승리 수가 있으면 바로 반환 (랜덤 이전)
   const opp = color === 'B' ? 'W' : 'B';
   for (const { row, col } of candidates) {
     if (hasImmediate(board, row, col, color)) return { row, col };
   }
 
-  let best = null, bestScore = -Infinity;
+  const scored = [];
   for (const { row, col } of candidates) {
     board[row][col] = color;
     const score = -alphabeta(board, depth - 1, -Infinity, Infinity, opp, candidateLimit);
     board[row][col] = null;
-    if (score > bestScore) { bestScore = score; best = { row, col }; }
+    scored.push({ row, col, score });
   }
-  return best ?? candidates[0];
+  if (scored.length === 0) return candidates[0];
+  return pickAmongBest(scored, margin);
 }
 
 // ── 트랜스포지션 테이블 + 반복심화 (docs/spec/ai.md §7-4) ────────────────────
@@ -176,8 +189,8 @@ function alphabetaTT(board, depth, alpha, beta, color, limit, h1, h2, tt, ext, c
 }
 
 // 반복심화 + TT 최선 수 (docs/spec/ai.md §7-4).
-// extBudget>0: 강제 수 연장(§7-5). nodeBudget: 최악 시간 캡(초과 시 직전 깊이 폴백).
-export function minimaxMoveTT(board, color, maxDepth, candidateLimit, extBudget = 0, nodeBudget = Infinity) {
+// extBudget>0: 강제 수 연장(§7-5). nodeBudget: 최악 시간 캡. margin>0: 최선점 근처 랜덤(§7-6).
+export function minimaxMoveTT(board, color, maxDepth, candidateLimit, extBudget = 0, nodeBudget = Infinity, margin = 0) {
   const rootCands = getOrderedCandidates(board, color, candidateLimit);
   if (rootCands.length === 0) return { row: 7, col: 7 };
 
@@ -212,6 +225,28 @@ export function minimaxMoveTT(board, color, maxDepth, candidateLimit, extBudget 
     }
     if (ctx.aborted) break; // 이 깊이 미완 → 직전 깊이의 bestMove 유지
     bestMove = bm;
+  }
+
+  // §7-6 랜덤: 최종 깊이 루트를 전체 창으로 재평가(warm TT라 저렴)해 정확 점수 확보 후 근처 랜덤.
+  // 예산 초과 등으로 못 하면 결정적 bestMove 폴백.
+  if (margin > 0) {
+    const [rh1, rh2] = hashBoard(board, color);
+    const ctx2 = { nodes: 0, budget: nodeBudget, aborted: false };
+    const scored = [];
+    for (const { row, col } of rootCands) {
+      const forcing = extBudget > 0 && makesFour(board, row, col, color);
+      board[row][col] = color;
+      const idx = row * BOARD_SIZE + col, ci = colorIdx(color);
+      const nh1 = rh1 ^ Z1[idx][ci] ^ SIDE1;
+      const nh2 = rh2 ^ Z2[idx][ci] ^ SIDE2;
+      const score = checkWin(board, row, col, color)
+        ? WIN_SCORE + maxDepth
+        : -alphabetaTT(board, forcing ? maxDepth : maxDepth - 1, -Infinity, Infinity, opp, candidateLimit, nh1, nh2, tt, forcing ? extBudget - 1 : extBudget, ctx2);
+      board[row][col] = null;
+      if (ctx2.aborted) break;
+      scored.push({ row, col, score });
+    }
+    if (!ctx2.aborted && scored.length > 0) return pickAmongBest(scored, margin);
   }
   return bestMove;
 }

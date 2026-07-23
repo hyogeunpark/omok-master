@@ -20,7 +20,7 @@ function randomEmpty(board) {
 }
 
 export class MinimaxPlayer {
-  constructor({ depth, candidateLimit, defenseWeight = 1.0, vcf = false, tt = false, ext = 0, nodeBudget = Infinity }) {
+  constructor({ depth, candidateLimit, defenseWeight = 1.0, vcf = false, tt = false, ext = 0, nodeBudget = Infinity, margin = 0, randomUntilStones = Infinity }) {
     this._depth          = depth;
     this._candidateLimit = candidateLimit;
     this._defenseWeight  = defenseWeight;
@@ -28,6 +28,8 @@ export class MinimaxPlayer {
     this._tt             = tt;          // 트랜스포지션 테이블 + 반복심화 (docs/spec/ai.md §7-4)
     this._ext            = ext;         // 강제 수 탐색 연장 예산 (docs/spec/ai.md §7-5)
     this._nodeBudget     = nodeBudget;  // 최악 시간 캡 (docs/spec/ai.md §7-5)
+    this._margin         = margin;      // 최선점 근처 랜덤 (docs/spec/ai.md §7-6)
+    this._randomUntil    = randomUntilStones; // 이 돌 수 이하일 때만 랜덤(초반만) — 강함 보존
   }
 
   // VCF 선행(hard) → Minimax. 단 상대 즉시-5 위협이 있으면 VCF 생략(docs/spec/ai.md §3-5-1 방어 우선).
@@ -36,9 +38,15 @@ export class MinimaxPlayer {
       const vcfMove = vcfSearch(board.map(r => [...r]), color);
       if (vcfMove) return vcfMove;
     }
+    // §7-6 초반(돌 ≤ randomUntil)만 랜덤, 이후는 결정적(최선). 강함 대부분 유지.
+    let stones = 0;
+    for (let r = 0; r < BOARD_SIZE; r++)
+      for (let c = 0; c < BOARD_SIZE; c++)
+        if (board[r][c] !== null) stones++;
+    const margin = stones <= this._randomUntil ? this._margin : 0;
     return this._tt
-      ? minimaxMoveTT(board, color, this._depth, this._candidateLimit, this._ext, this._nodeBudget)
-      : minimaxMove(board, color, this._depth, this._candidateLimit);
+      ? minimaxMoveTT(board, color, this._depth, this._candidateLimit, this._ext, this._nodeBudget, margin)
+      : minimaxMove(board, color, this._depth, this._candidateLimit, margin);
   }
 
   getOpeningMove(board, color, step, branch) {
