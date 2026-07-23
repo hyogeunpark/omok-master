@@ -57,8 +57,10 @@ createAiPlayer(difficulty: 'easy' | 'normal' | 'hard'): AiPlayer
 | difficulty | 반환 구현체 |
 |-----------|------------|
 | `easy` | `HeuristicPlayer` |
-| `normal` | `MinimaxPlayer({ depth: 2, candidateLimit: 10, defenseWeight: 1.0 })` |
-| `hard` | `MinimaxPlayer({ depth: 6, candidateLimit: 8, defenseWeight: 1.2, vcf: true, tt: true, ext: 8, nodeBudget: 10000 })` |
+| `normal` | `MinimaxPlayer({ depth: 2, candidateLimit: 10, defenseWeight: 1.0, margin: 100 })` |
+| `hard` | `MinimaxPlayer({ depth: 6, candidateLimit: 8, defenseWeight: 1.2, vcf: true, tt: true, ext: 8, nodeBudget: 10000, margin: 600, randomUntilStones: 12 })` |
+
+- `margin`·`randomUntilStones`은 최선점 근처 랜덤 선택(`docs/spec/ai.md §7-6`) — 같은 수 반복 방지. 어려움은 초반만 랜덤해 강함 유지.
 
 ---
 

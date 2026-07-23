@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { isInOpeningZone } from '../../../engine/opening.js';
 import { mulberry32 } from '../arena.js';
 import { createAiPlayer } from '../../createAiPlayer.js';
+import { MinimaxPlayer } from '../../players/MinimaxPlayer.js';
 import { playOpeningGame } from '../openingArena.js';
 
 function firstEmpty(board) {
@@ -63,7 +64,9 @@ describe('playOpeningGame', () => {
   });
 
   it('AC-A19: rng를 주면 오프닝 place가 구역 내 무작위이고 같은 시드는 재현된다', () => {
-    const brains = () => [createAiPlayer('normal'), createAiPlayer('normal')];
+    // 오프닝 rng 재현성만 검증하므로 두뇌는 결정적(margin 0)이어야 한다.
+    const detBrain = () => new MinimaxPlayer({ depth: 2, candidateLimit: 10, defenseWeight: 1.0 });
+    const brains = () => [detBrain(), detBrain()];
     const g1 = playOpeningGame(...brains(), { aStartColor: 'B', rng: mulberry32(42) });
     const g2 = playOpeningGame(...brains(), { aStartColor: 'B', rng: mulberry32(42) });
     const gDiff = playOpeningGame(...brains(), { aStartColor: 'B', rng: mulberry32(7) });
