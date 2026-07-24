@@ -1,7 +1,8 @@
+// brain: CPU 두뇌(탐색 방식) 표시 — docs/spec/ai.md §2 난이도 정의 기준
 const DIFFICULTIES = [
-  { key: 'easy',   label: '쉬움',   desc: 'AI가 가끔 실수해요',     level: '01' },
-  { key: 'normal', label: '보통',   desc: '균형 잡힌 대국',         level: '02' },
-  { key: 'hard',   label: '어려움', desc: '집중해야 이길 수 있어요', level: '03' },
+  { key: 'easy',   label: '쉬움',   desc: 'AI가 가끔 실수해요',     brain: '1수 앞 · 즉시 위협만',      level: '01' },
+  { key: 'normal', label: '보통',   desc: '균형 잡힌 대국',         brain: '2수 앞 미니맥스',           level: '02' },
+  { key: 'hard',   label: '어려움', desc: '집중해야 이길 수 있어요', brain: '6수 앞 · 강제수 읽기 (VCF)', level: '03' },
 ];
 
 export default function StartScreen({ onStart }) {
@@ -19,7 +20,7 @@ export default function StartScreen({ onStart }) {
       <main className="start-main">
         <p className="start-section-label">난이도 선택</p>
         <div className="difficulty-list">
-          {DIFFICULTIES.map(({ key, label, desc, level }) => (
+          {DIFFICULTIES.map(({ key, label, desc, brain, level }) => (
             <button
               key={key}
               className="difficulty-card"
@@ -29,6 +30,7 @@ export default function StartScreen({ onStart }) {
               <div className="difficulty-text">
                 <span className="difficulty-label">{label}</span>
                 <span className="difficulty-desc">{desc}</span>
+                <span className="difficulty-brain">{brain}</span>
               </div>
               <span className="difficulty-arrow">→</span>
             </button>
