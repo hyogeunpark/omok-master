@@ -1,7 +1,7 @@
 // Phase 3 완료 기준: 타라구치-10 오프닝 (FR-7, FR-7a~c)
 import { describe, it, expect } from 'vitest';
 import {
-  isInOpeningZone, isCandidateDuplicate, getZoneRange, createOpeningState,
+  isInOpeningZone, isCandidateDuplicate,
 } from '../opening.js';
 import {
   createGame, placeStone,
