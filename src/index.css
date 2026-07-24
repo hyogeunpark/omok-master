@@ -170,6 +170,29 @@ body {
   color: var(--on-surface-dim);
 }
 
+/* CPU 두뇌(탐색 방식) 태그 — docs/spec/ai.md §2 */
+.difficulty-brain {
+  align-self: flex-start;
+  margin-top: 5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+  background: var(--accent-glow);
+  border: 1px solid var(--accent-border);
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+
+.difficulty-brain::before {
+  content: '◈';
+  font-size: 0.7em;
+  line-height: 1;
+}
+
 .difficulty-arrow {
   color: var(--outline);
   font-size: 0.9rem;
