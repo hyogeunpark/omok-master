@@ -1,8 +1,10 @@
+import { BRAIN_LABEL } from './brainLabel.js';
+
 // brain: CPU 두뇌(탐색 방식) 표시 — docs/spec/ai.md §2 난이도 정의 기준
 const DIFFICULTIES = [
-  { key: 'easy',   label: '쉬움',   desc: 'AI가 가끔 실수해요',     brain: '1수 앞 · 즉시 위협만',      level: '01' },
-  { key: 'normal', label: '보통',   desc: '균형 잡힌 대국',         brain: '2수 앞 미니맥스',           level: '02' },
-  { key: 'hard',   label: '어려움', desc: '집중해야 이길 수 있어요', brain: '6수 앞 · 강제수 읽기 (VCF)', level: '03' },
+  { key: 'easy',   label: '쉬움',   desc: 'AI가 가끔 실수해요',     brain: BRAIN_LABEL.easy,   level: '01' },
+  { key: 'normal', label: '보통',   desc: '균형 잡힌 대국',         brain: BRAIN_LABEL.normal, level: '02' },
+  { key: 'hard',   label: '어려움', desc: '집중해야 이길 수 있어요', brain: BRAIN_LABEL.hard,   level: '03' },
 ];
 
 export default function StartScreen({ onStart }) {

@@ -818,6 +818,27 @@ body {
   opacity: 0.8;
 }
 
+/* 게임 중 CPU 두뇌(탐색 방식) 표시 — docs/spec/ai.md §2 */
+.game-cpu-brain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.cpu-brain-caption {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--on-surface-dim);
+  white-space: nowrap;
+}
+
+.game-cpu-brain .difficulty-brain {
+  margin-top: 0;
+}
+
 .stone-dot {
   display: inline-block;
   width: 11px;

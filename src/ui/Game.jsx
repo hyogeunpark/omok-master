@@ -11,6 +11,7 @@ import { saveRecord } from '../engine/records.js';
 import { playStoneSound } from './sound.js';
 import Board from './Board.jsx';
 import ResultOverlay from './ResultOverlay.jsx';
+import { BRAIN_LABEL } from './brainLabel.js';
 
 function statusMessage(game) {
   if (game.status === 'draw') return '무승부';
@@ -272,6 +273,13 @@ export default function Game({ player, difficulty, onExit }) {
             </div>
             {op && <span className="color-info-tentative">(잠정)</span>}
           </div>
+          {/* CPU 두뇌(탐색 방식) 표시 — docs/spec/ai.md §2 */}
+          {BRAIN_LABEL[difficulty] && (
+            <div className="game-cpu-brain">
+              <span className="cpu-brain-caption">CPU 두뇌</span>
+              <span className="difficulty-brain">{BRAIN_LABEL[difficulty]}</span>
+            </div>
+          )}
         </div>
 
         {/* 오프닝 UI */}
