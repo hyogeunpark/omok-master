@@ -1,6 +1,6 @@
 // Phase 2 — 렌주 금수 판정 (FR-6)
 // 패턴 매칭 기반 구현 (docs/phase-2.md §6 단순 카운트 금지)
-import { BOARD_SIZE, inBounds } from './board.js';
+import { inBounds } from './board.js';
 
 const DIRS = [[0, 1], [1, 0], [1, 1], [1, -1]];
 
