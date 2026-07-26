@@ -12,7 +12,13 @@
   --accent:           #d4af37;
   --accent-glow:      rgba(212, 175, 55, 0.12);
   --accent-border:    rgba(212, 175, 55, 0.25);
+  /* CPU / 사고 상태 전용 — night indigo (docs/spec/game-hud.md §3) */
+  --cpu:              #8b93ff;
+  --cpu-glow:         rgba(129, 140, 248, 0.13);
+  --cpu-border:       rgba(129, 140, 248, 0.32);
   --error:            #ff4444;
+  /* HUD 데이터용 모노 스택 — 외부 폰트 로드 없음 (docs/spec/game-hud.md §4) */
+  --mono:             ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
 }
 
 body {
@@ -780,63 +786,128 @@ body {
 .btn-back:hover { color: var(--on-surface); border-color: var(--on-surface-dim); }
 
 /* 색상 표시 (나 + CPU) */
-.color-info {
+/* ─────────────────────────────────────
+   대국 HUD — 존/매치업/readout (docs/spec/game-hud.md)
+───────────────────────────────────── */
+.hud-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hud-zone-label {
+  font-family: var(--mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--on-surface-dim);
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 11px;
+}
+.hud-zone-label::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--outline);
+}
+
+/* 매치업: 나(골드) VS CPU(인디고) */
+.hud-vs {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
   border: 1px solid var(--outline);
-  border-radius: 7px;
+  border-radius: 9px;
   background: var(--surface-low);
 }
 
-.color-info-item {
+.hud-side {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 0.76rem;
-  color: var(--on-surface-dim);
+  gap: 6px;
+  font-size: 0.78rem;
+  min-width: 0;
 }
+.hud-side--cpu { justify-content: flex-end; }
 
-.color-info-item em {
+.hud-role { color: var(--on-surface-dim); }
+.hud-who {
   font-style: normal;
   font-weight: 600;
-  color: var(--on-surface);
+}
+.hud-side--me  .hud-who { color: var(--accent); }
+.hud-side--cpu .hud-who { color: var(--cpu); }
+
+.hud-side--me  .stone-dot { box-shadow: 0 0 0 2px var(--accent-glow), 0 1px 3px rgba(0,0,0,0.4); }
+.hud-side--cpu .stone-dot { box-shadow: 0 0 0 2px var(--cpu-glow),    0 1px 3px rgba(0,0,0,0.4); }
+
+.hud-vs-sep {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  color: var(--on-surface-dim);
+  padding: 2px 6px;
+  border: 1px solid var(--outline);
+  border-radius: 5px;
 }
 
-.color-info-sep {
-  width: 1px;
-  height: 11px;
-  background: var(--outline);
-  flex-shrink: 0;
-}
-
-.color-info-tentative {
-  font-size: 0.65rem;
-  color: var(--accent);
+.hud-tentative {
+  align-self: flex-start;
+  font-size: 0.62rem;
+  color: var(--cpu);
   font-weight: 500;
-  opacity: 0.8;
+  opacity: 0.85;
 }
 
-/* 게임 중 CPU 두뇌(탐색 방식) 표시 — docs/spec/ai.md §2 */
-.game-cpu-brain {
+/* CPU 두뇌 readout (인디고) */
+.hud-readout {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 9px 12px;
+  border: 1px solid var(--cpu-border);
+  border-radius: 9px;
+  background: var(--cpu-glow);
 }
-
-.cpu-brain-caption {
-  font-size: 0.58rem;
-  font-weight: 700;
-  letter-spacing: 0.09em;
+.hud-readout-lab {
+  font-family: var(--mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--on-surface-dim);
+  color: var(--cpu);
+  opacity: 0.9;
   white-space: nowrap;
 }
-
-.game-cpu-brain .difficulty-brain {
-  margin-top: 0;
+.hud-readout-val {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 0.78rem;
+  color: var(--on-surface);
+}
+.hud-readout-val b { font-weight: 600; }
+.hud-depth {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--cpu);
+  font-variant-numeric: tabular-nums;
+}
+.hud-readout-sep { color: var(--on-surface-dim); }
+.hud-method { color: var(--on-surface-dim); }
+.hud-tag {
+  align-self: center;
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  color: var(--cpu);
+  border: 1px solid var(--cpu-border);
+  border-radius: 4px;
+  padding: 1px 5px;
 }
 
 .stone-dot {
@@ -1001,7 +1072,7 @@ body {
   position: absolute;
   left: 0; right: 0;
   height: 10px;
-  background: linear-gradient(180deg, transparent, rgba(212,175,55,.55), transparent);
+  background: linear-gradient(180deg, transparent, rgba(139,147,255,.6), transparent);
   animation: thinkingScan 1.5s ease-in-out infinite;
 }
 .thinking-hit {
@@ -1009,8 +1080,8 @@ body {
   width: 6px; height: 6px;
   left: 10px; top: 10px;
   border-radius: 50%;
-  background: radial-gradient(circle at 34% 30%, #ffe9a8, var(--accent));
-  box-shadow: 0 0 6px rgba(212,175,55,.7);
+  background: radial-gradient(circle at 34% 30%, #cfd3ff, var(--cpu));
+  box-shadow: 0 0 6px rgba(139,147,255,.75);
   animation: thinkingHit 1.5s ease-in-out infinite;
 }
 @keyframes thinkingScan { 0% { top: -10px; } 60%, 100% { top: 100%; } }
@@ -1020,11 +1091,18 @@ body {
   100% { opacity: 0; }
 }
 
-/* 텍스트: 골드, 숫자는 tabular로 흔들림 없이 */
+/* 텍스트: CPU 인디고, 깊이 숫자는 모노+tabular로 계기판처럼 (docs/spec/game-hud.md §3,4) */
 .thinking-text {
-  color: var(--accent);
+  color: var(--cpu);
   font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 10px rgba(212,175,55,.35);
+  text-shadow: 0 0 10px rgba(139,147,255,.35);
+}
+.thinking-depth {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 1.1em;
+  margin: 0 1px;
+  font-variant-numeric: tabular-nums;
 }
 
 @media (prefers-reduced-motion: reduce) {
