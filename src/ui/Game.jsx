@@ -11,7 +11,7 @@ import { saveRecord } from '../engine/records.js';
 import { playStoneSound } from './sound.js';
 import Board from './Board.jsx';
 import ResultOverlay from './ResultOverlay.jsx';
-import { BRAIN_LABEL } from './brainLabel.js';
+import { BRAIN_META } from './brainLabel.js';
 
 function statusMessage(game) {
   if (game.status === 'draw') return '무승부';
@@ -228,6 +228,7 @@ export default function Game({ player, difficulty, onExit }) {
   const cpuDot      = game.cpuColor    === 'B' ? 'b' : 'w';
   const playerLabel = game.playerColor === 'B' ? '흑' : '백';
   const cpuLabel    = game.cpuColor    === 'B' ? '흑' : '백';
+  const brain       = BRAIN_META[difficulty]; // CPU 두뇌 readout (docs/spec/game-hud.md §2)
 
   const forbiddenCells = useMemo(() => {
     if (isOpeningActive || game.status !== 'playing' || game.currentTurn !== 'B') return [];
@@ -261,23 +262,34 @@ export default function Game({ player, difficulty, onExit }) {
         {/* 헤더 */}
         <div className="game-header">
           <button className="btn-back" onClick={onExit}>← 나가기</button>
-          <div className="color-info">
-            <div className="color-info-item">
+        </div>
+
+        {/* 대국 존: 매치업(나 vs CPU) + CPU 두뇌 readout — docs/spec/game-hud.md §2,3 */}
+        <div className="hud-zone">
+          <span className="hud-zone-label">대국</span>
+          <div className="hud-vs">
+            <span className="hud-side hud-side--me">
               <i className={`stone-dot stone-dot--${playerDot}`} />
-              <span>나 <em>{playerLabel}</em></span>
-            </div>
-            <span className="color-info-sep" />
-            <div className="color-info-item">
+              <span className="hud-role">나</span> <em className="hud-who">{playerLabel}</em>
+            </span>
+            <span className="hud-vs-sep">VS</span>
+            <span className="hud-side hud-side--cpu">
+              <em className="hud-who">{cpuLabel}</em> <span className="hud-role">CPU</span>
               <i className={`stone-dot stone-dot--${cpuDot}`} />
-              <span>CPU <em>{cpuLabel}</em></span>
-            </div>
-            {op && <span className="color-info-tentative">(잠정)</span>}
+            </span>
           </div>
-          {/* CPU 두뇌(탐색 방식) 표시 — docs/spec/ai.md §2 */}
-          {BRAIN_LABEL[difficulty] && (
-            <div className="game-cpu-brain">
-              <span className="cpu-brain-caption">CPU 두뇌</span>
-              <span className="difficulty-brain">{BRAIN_LABEL[difficulty]}</span>
+          {op && <span className="hud-tentative">잠정 배정</span>}
+          {/* CPU 두뇌(탐색 방식) — docs/spec/ai.md §2-2, game-hud.md §4 */}
+          {brain && (
+            <div className="hud-readout">
+              <span className="hud-readout-lab">CPU 탐색</span>
+              <span className="hud-readout-val">
+                <span className="hud-depth">{brain.depth}</span>
+                <b>수 앞</b>
+                <span className="hud-readout-sep">·</span>
+                <span className="hud-method">{brain.method}</span>
+                {brain.tag && <span className="hud-tag">{brain.tag}</span>}
+              </span>
             </div>
           )}
         </div>
@@ -314,28 +326,35 @@ export default function Game({ player, difficulty, onExit }) {
           </div>
         )}
 
-        {/* 상태 표시 */}
-        <div className="game-status">
-          {thinking && (
-            <span className="thinking-indicator">
-              <span className="thinking-board" aria-hidden="true"><i className="thinking-hit" /></span>
-              <span className="thinking-text">
-                CPU가 {thinkingDepth > 0 ? `${thinkingDepth}수 앞을` : '수를'} 읽는 중
+        {/* 상태 존 — docs/spec/game-hud.md §2 */}
+        <div className="hud-zone hud-zone--status">
+          <span className="hud-zone-label">상태</span>
+          <div className="game-status">
+            {thinking && (
+              <span className="thinking-indicator">
+                <span className="thinking-board" aria-hidden="true"><i className="thinking-hit" /></span>
+                <span className="thinking-text">
+                  CPU가 {thinkingDepth > 0
+                    ? <>
+                        <span className="thinking-depth">{thinkingDepth}</span>수 앞을
+                      </>
+                    : '수를'} 읽는 중
+                </span>
               </span>
-            </span>
-          )}
-          {!thinking && !msg && !op && (
-            <span className="turn-text">
-              {game.currentTurn === game.playerColor ? '내 차례' : 'CPU 차례'}
-            </span>
-          )}
-          {!thinking && !msg && op?.phase === 'place' && (
-            <span className="turn-text">
-              {game.currentTurn === game.playerColor
-                ? `${openingStepLabel} — 내 차례`
-                : `${openingStepLabel} — CPU 차례`}
-            </span>
-          )}
+            )}
+            {!thinking && !msg && !op && (
+              <span className="turn-text">
+                {game.currentTurn === game.playerColor ? '내 차례' : 'CPU 차례'}
+              </span>
+            )}
+            {!thinking && !msg && op?.phase === 'place' && (
+              <span className="turn-text">
+                {game.currentTurn === game.playerColor
+                  ? `${openingStepLabel} — 내 차례`
+                  : `${openingStepLabel} — CPU 차례`}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* 액션 버튼 */}
