@@ -6,17 +6,23 @@ import RulesScreen from './ui/RulesScreen.jsx';
 import RecordsScreen from './ui/RecordsScreen.jsx';
 import ProfileScreen from './ui/ProfileScreen.jsx';
 import Game from './ui/Game.jsx';
+import PuzzleScreen from './ui/PuzzleScreen.jsx';
 import { createAiPlayer } from './ai/createAiPlayer.js';
 
 export default function App() {
   const [gameConfig, setGameConfig] = useState(null);
   const [activeTab, setActiveTab] = useState('play');
+  const [puzzleOpen, setPuzzleOpen] = useState(false); // docs/spec/puzzle.md §8
 
   // docs/spec/ai-player.md §6 — difficulty → player 주입
   const player = useMemo(
     () => gameConfig ? createAiPlayer(gameConfig.difficulty) : null,
     [gameConfig?.difficulty]
   );
+
+  if (puzzleOpen) {
+    return <PuzzleScreen onExit={() => setPuzzleOpen(false)} />;
+  }
 
   if (gameConfig) {
     return (
@@ -31,7 +37,12 @@ export default function App() {
 
   return (
     <>
-      {activeTab === 'play'    && <StartScreen onStart={(m, d) => setGameConfig({ mode: m, difficulty: d })} />}
+      {activeTab === 'play'    && (
+        <StartScreen
+          onStart={(m, d) => setGameConfig({ mode: m, difficulty: d })}
+          onPuzzle={() => setPuzzleOpen(true)}
+        />
+      )}
       {activeTab === 'rules'   && <RulesScreen />}
       {activeTab === 'records' && <RecordsScreen />}
       {activeTab === 'profile' && <ProfileScreen />}
