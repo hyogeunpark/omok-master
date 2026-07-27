@@ -7,7 +7,8 @@ import {
 // docs/spec/ai-player.md §6 — player 인터페이스로 통신
 import { isForbidden } from '../engine/forbidden.js';
 import { getZoneRange } from '../engine/opening.js';
-import { saveRecord } from '../engine/records.js';
+import { saveRecord, loadRecords } from '../engine/records.js';
+import { computeStreaks } from '../engine/streak.js';
 import { playStoneSound } from './sound.js';
 import Board from './Board.jsx';
 import ResultOverlay from './ResultOverlay.jsx';
@@ -49,6 +50,7 @@ export default function Game({ player, difficulty, mode = 'renju', onExit }) {
   const [game, setGame] = useState(() => createGame({ useOpening }));
   const [thinking, setThinking] = useState(false);
   const [thinkingDepth, setThinkingDepth] = useState(0); // hard 실시간 탐색 깊이 (§6-A)
+  const [streaks, setStreaks] = useState(null); // 종료 시 계산 (docs/spec/streak.md §4-2)
   const pendingRef = useRef(false);
   const savedRef = useRef(false);
   const workerRef = useRef(null);
@@ -195,16 +197,20 @@ export default function Game({ player, difficulty, mode = 'renju', onExit }) {
       id: Date.now().toString(),
       date: new Date().toISOString(),
       difficulty,
+      mode, // docs/spec/streak.md §3
       myColor: game.playerColor,
       result,
       moves: game.history,
     });
-  }, [game.status, game.playerColor, difficulty]);
+    // 저장 직후 스트릭 재계산 → 결과 화면에 표시 (docs/spec/streak.md §4-2)
+    setStreaks(computeStreaks(loadRecords()));
+  }, [game.status, game.playerColor, difficulty, mode]);
 
   const handleNewGame = useCallback(() => {
     pendingRef.current = false;
     savedRef.current = false;
     setThinking(false);
+    setStreaks(null);
     setGame(createGame({ useOpening }));
   }, [useOpening]);
 
@@ -373,6 +379,7 @@ export default function Game({ player, difficulty, mode = 'renju', onExit }) {
       <ResultOverlay
         game={game}
         timeoutLoser={null}
+        streaks={streaks}
         onNewGame={handleNewGame}
         onExit={onExit}
       />

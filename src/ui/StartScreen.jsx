@@ -1,6 +1,9 @@
 // docs/spec/game-modes.md §3 — 모드 선택 → 난이도 선택 2단계
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { BRAIN_LABEL } from './brainLabel.js';
+import StreakBanner from './StreakBanner.jsx';
+import { loadRecords } from '../engine/records.js';
+import { computeStreaks } from '../engine/streak.js';
 
 // docs/spec/game-modes.md §2 모드 정의
 const MODES = [
@@ -29,6 +32,8 @@ const DIFFICULTIES = [
 
 export default function StartScreen({ onStart }) {
   const [mode, setMode] = useState(null);
+  // docs/spec/streak.md §4-1 — 진입 시 스트릭 노출
+  const streaks = useMemo(() => computeStreaks(loadRecords()), []);
 
   return (
     <div className="start-screen">
@@ -42,6 +47,7 @@ export default function StartScreen({ onStart }) {
       </header>
 
       <main className="start-main">
+        <StreakBanner streaks={streaks} />
         {!mode ? (
           <>
             <p className="start-section-label">모드 선택</p>

@@ -1,4 +1,4 @@
-export default function ResultOverlay({ game, timeoutLoser, onNewGame, onExit }) {
+export default function ResultOverlay({ game, timeoutLoser, streaks, onNewGame, onExit }) {
   const isOver = game.status !== 'playing' || !!timeoutLoser;
   if (!isOver) return null;
 
@@ -47,6 +47,19 @@ export default function ResultOverlay({ game, timeoutLoser, onNewGame, onExit })
         {type === 'win' && <div className="result-divider" />}
 
         <p className="result-sub">{subText}</p>
+
+        {/* 스트릭 — 감정이 가장 높은 시점 (docs/spec/streak.md §4-2)
+            승리 + 2연승 이상일 때만 연승을 강조하고, 패배 시엔 강조하지 않는다. */}
+        {streaks && (streaks.daily > 0 || (type === 'win' && streaks.win >= 2)) && (
+          <div className="result-streaks">
+            {type === 'win' && streaks.win >= 2 && (
+              <span className="result-streak result-streak--win">{streaks.win}연승</span>
+            )}
+            {streaks.daily > 0 && (
+              <span className="result-streak">{streaks.daily}일 연속</span>
+            )}
+          </div>
+        )}
 
         <div className="result-overlay-btns">
           <button className="result-overlay-btn result-overlay-btn--primary" onClick={onNewGame}>
