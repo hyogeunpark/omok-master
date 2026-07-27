@@ -1,11 +1,14 @@
 // docs/spec/puzzle.md §3 — 문제은행 오프라인 생성 (Node 직접 실행, 빌드 불필요)
 //
-//   node scripts/puzzles.mjs                  # 기본: 60판에서 수집, bank.json 기록
+//   node scripts/puzzles.mjs                  # 기본: 기존 은행 뒤에 이어붙임(append)
 //   node scripts/puzzles.mjs --games 200      # 대국 수
 //   node scripts/puzzles.mjs --seed 7         # 오프닝 시드(재현 가능)
 //   node scripts/puzzles.mjs --dry            # 파일로 쓰지 않고 통계만 출력
+//   node scripts/puzzles.mjs --fresh          # 전체 재생성(덮어쓰기) — §3-3 주의
 //
-import { writeFileSync, mkdirSync } from 'node:fs';
+// §3-3 기본이 append인 이유: 문제 순서가 바뀌면 날짜↔문제 대응이 전부 어긋나
+// 구 번들 사용자와 새 번들 사용자가 같은 날 다른 문제를 보게 된다.
+import { writeFileSync, mkdirSync, readFileSync, existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -28,6 +31,13 @@ const arg = (name, def) => {
 const GAMES = Number(arg('games', 60));
 const SEED  = Number(arg('seed', 20260727));
 const DRY   = argv.includes('--dry');
+const FRESH = argv.includes('--fresh');
+
+// §3-3 기존 은행 로드 — append 시 순서를 보존하고 중복만 걸러낸다
+const existing = (!FRESH && existsSync(OUT))
+  ? (JSON.parse(readFileSync(OUT, 'utf8')).puzzles ?? [])
+  : [];
+const posKey = (b, w) => JSON.stringify([b, w]);
 
 // ── 국면 → 정답 목록 (§2 정답은 복수 가능)
 // 흑 차례 국면에서 "강제승으로 이어지는 착수점"을 모두 찾는다.
@@ -103,11 +113,13 @@ const rng = mulberry32(SEED);
 // 판마다 서로 다른 초기 배치(결정적 두뇌 다양화 — ai-arena.md §5-4)
 const books = randomOpenings(GAMES, { stones: 4, seed: SEED, radius: 4 });
 const players = ['normal', 'hard'].map(d => createAiPlayer(d));
-const puzzles = [];
-const seen = new Set();
+const puzzles = [];                                   // 이번에 새로 만든 것만
+const seen = new Set(existing.map(p => posKey(p.b, p.w))); // 기존 국면도 중복 제거 대상
+let nextId = existing.length + 1;                     // ID는 기존 뒤로 이어서
 let scanned = 0;
 
-console.log(`문제은행 생성 — ${GAMES}판 (seed ${SEED})`);
+console.log(`문제은행 ${FRESH ? '재생성' : '추가'} — ${GAMES}판 (seed ${SEED})`);
+if (!FRESH) console.log(`기존 ${existing.length}개 유지, 뒤에 이어붙입니다.`);
 
 for (let g = 0; g < GAMES; g++) {
   const openings = books[g];
@@ -127,12 +139,12 @@ for (let g = 0; g < GAMES; g++) {
         const { solutions, kind } = findSolutions(board);
         if (solutions.length > 0) {
           const { b, w } = stonesOf(board);
-          const key = JSON.stringify([b, w]);
+          const key = posKey(b, w);
           if (!seen.has(key)) {
             seen.add(key);
             takenThisGame++;
             puzzles.push({
-              id: `p${String(puzzles.length + 1).padStart(4, '0')}`,
+              id: `p${String(nextId++).padStart(4, '0')}`,
               b, w,
               solution: solutions,
               difficulty: classify(board),
@@ -162,16 +174,32 @@ for (const p of puzzles) {
 const byDiff = { easy: 0, normal: 0, hard: 0 };
 for (const p of puzzles) byDiff[p.difficulty]++;
 
+const merged = [...existing, ...puzzles];
+
 console.log('');
 console.log(`검사한 국면: ${scanned}`);
-console.log(`생성된 퍼즐: ${puzzles.length}개  (easy ${byDiff.easy} / normal ${byDiff.normal} / hard ${byDiff.hard})`);
+console.log(`새 퍼즐:     ${puzzles.length}개  (easy ${byDiff.easy} / normal ${byDiff.normal} / hard ${byDiff.hard})`);
 console.log(`검증 실패:   ${bad}개`);
+console.log(`전체:        ${existing.length} → ${merged.length}개`);
+
+// CI에서 읽어 PR 본문에 쓴다 (§3-4)
+if (process.env.GITHUB_OUTPUT) {
+  const { appendFileSync } = await import('node:fs');
+  appendFileSync(process.env.GITHUB_OUTPUT, `added=${puzzles.length}\ntotal=${merged.length}\n`);
+}
+
+if (bad > 0) {
+  console.error('\n검증에 실패한 문제가 있어 저장하지 않았습니다.');
+  process.exit(1);
+}
 
 if (DRY) {
   console.log('\n--dry: 파일을 쓰지 않았습니다.');
   console.log(JSON.stringify(puzzles.slice(0, 2), null, 2));
+} else if (puzzles.length === 0) {
+  console.log('\n새 문제가 없어 파일을 바꾸지 않았습니다.');
 } else {
   mkdirSync(dirname(OUT), { recursive: true });
-  writeFileSync(OUT, JSON.stringify({ version: 1, puzzles }, null, 0));
+  writeFileSync(OUT, JSON.stringify({ version: 1, puzzles: merged }, null, 0));
   console.log(`\n저장: ${OUT}`);
 }

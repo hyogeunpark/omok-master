@@ -26,8 +26,23 @@ export function puzzleByNumber(n) {
   return bank.puzzles[idx];
 }
 
-export function todayPuzzle(date = new Date()) {
-  return puzzleByNumber(puzzleNumber(date));
+/**
+ * §4-1 이미 푼 문제가 배정되면 아직 풀지 않은 문제로 대체한다.
+ * 대체도 결정적이다 — 같은 날 다시 열어도 같은 문제가 나온다.
+ */
+export function todayPuzzle(date = new Date(), log = loadPuzzleLog()) {
+  const n = puzzleNumber(date);
+  const assigned = puzzleByNumber(n);
+  if (!assigned) return null;
+
+  const solvedIds = new Set(
+    Object.values(log).map(v => v?.id).filter(Boolean)
+  );
+  if (!solvedIds.has(assigned.id)) return assigned;
+
+  const unseen = bank.puzzles.filter(p => !solvedIds.has(p.id));
+  if (unseen.length === 0) return assigned; // 전부 푼 경우 대체 불가
+  return unseen[((n % unseen.length) + unseen.length) % unseen.length];
 }
 
 /** 퍼즐 데이터(좌표 목록) → 15×15 보드 */
@@ -75,12 +90,12 @@ export function isSolvedToday(log = loadPuzzleLog(), date = new Date()) {
   return todayResult(log, date) !== null;
 }
 
-/** 결과 기록. 이미 기록된 날은 덮어쓰지 않는다. */
-export function recordResult({ solved, attempts }, date = new Date()) {
+/** 결과 기록. 이미 기록된 날은 덮어쓰지 않는다. id는 §4-1 대체 판정에 쓴다. */
+export function recordResult({ solved, attempts, id }, date = new Date()) {
   const log = loadPuzzleLog();
   const key = dayKey(date instanceof Date ? date.toISOString() : date);
   if (!key || log[key]) return log;
-  log[key] = { solved: !!solved, attempts };
+  log[key] = id ? { solved: !!solved, attempts, id } : { solved: !!solved, attempts };
   saveLog(log);
   return log;
 }
