@@ -116,6 +116,50 @@ body {
   color: var(--on-surface-dim);
   text-transform: uppercase;
   margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 모드 선택 → 난이도 선택 (docs/spec/game-modes.md §3) */
+.start-section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.start-section-head .start-section-label { margin-bottom: 0; }
+/* 전역 button { flex: 1 } 상쇄 — 뒤로가기는 내용 폭만 차지 */
+.start-section-head .btn-back { flex: 0 0 auto; }
+
+.start-mode-tag {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--accent);
+  background: var(--accent-glow);
+  border: 1px solid var(--accent-border);
+  border-radius: 5px;
+  padding: 1px 7px;
+}
+
+/* 추천 모드 카드 — 시각적 우선순위 (game-modes.md §3) */
+.difficulty-card--rec {
+  border-color: var(--accent-border);
+  background: linear-gradient(180deg, var(--accent-glow), transparent);
+}
+
+.mode-rec {
+  margin-left: 7px;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  border: 1px solid var(--accent-border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  vertical-align: middle;
 }
 
 /* Difficulty cards */
@@ -810,6 +854,22 @@ body {
   flex: 1;
   height: 1px;
   background: var(--outline);
+  order: 3;
+}
+
+/* 현재 모드 표시 — docs/spec/game-modes.md §4 */
+.hud-mode {
+  order: 2;
+  font-family: 'Inter', 'Apple SD Gothic Neo', 'Noto Sans KR', -apple-system, sans-serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--accent);
+  background: var(--accent-glow);
+  border: 1px solid var(--accent-border);
+  border-radius: 5px;
+  padding: 1px 6px;
+  white-space: nowrap;
 }
 
 /* 매치업: 나(골드) VS CPU(인디고) */

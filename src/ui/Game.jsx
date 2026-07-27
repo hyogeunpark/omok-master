@@ -43,8 +43,10 @@ function getCpuOpeningAction(game) {
   return null;
 }
 
-export default function Game({ player, difficulty, onExit }) {
-  const [game, setGame] = useState(() => createGame());
+export default function Game({ player, difficulty, mode = 'renju', onExit }) {
+  // docs/spec/game-modes.md §2 — 빠른 대국은 오프닝 생략(금수는 유지)
+  const useOpening = mode !== 'quick';
+  const [game, setGame] = useState(() => createGame({ useOpening }));
   const [thinking, setThinking] = useState(false);
   const [thinkingDepth, setThinkingDepth] = useState(0); // hard 실시간 탐색 깊이 (§6-A)
   const pendingRef = useRef(false);
@@ -203,8 +205,8 @@ export default function Game({ player, difficulty, onExit }) {
     pendingRef.current = false;
     savedRef.current = false;
     setThinking(false);
-    setGame(createGame());
-  }, []);
+    setGame(createGame({ useOpening }));
+  }, [useOpening]);
 
   const msg    = statusMessage(game);
   const canUndo = !thinking && !isOpeningActive && game.history.length >= 2;
@@ -266,7 +268,11 @@ export default function Game({ player, difficulty, onExit }) {
 
         {/* 대국 존: 매치업(나 vs CPU) + CPU 두뇌 readout — docs/spec/game-hud.md §2,3 */}
         <div className="hud-zone">
-          <span className="hud-zone-label">대국</span>
+          <span className="hud-zone-label">
+            대국
+            {/* 현재 모드 — docs/spec/game-modes.md §4 */}
+            <span className="hud-mode">{useOpening ? '정석 렌주' : '빠른 대국'}</span>
+          </span>
           <div className="hud-vs">
             <span className="hud-side hud-side--me">
               <i className={`stone-dot stone-dot--${playerDot}`} />
