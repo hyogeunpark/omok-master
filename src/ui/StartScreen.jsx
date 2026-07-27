@@ -4,6 +4,7 @@ import { BRAIN_LABEL } from './brainLabel.js';
 import StreakBanner from './StreakBanner.jsx';
 import { loadRecords } from '../engine/records.js';
 import { computeStreaks } from '../engine/streak.js';
+import { puzzleNumber, todayResult, PUZZLE_COUNT } from '../engine/puzzle.js';
 
 // docs/spec/game-modes.md §2 모드 정의
 const MODES = [
@@ -30,10 +31,13 @@ const DIFFICULTIES = [
   { key: 'hard',   label: '어려움', desc: '집중해야 이길 수 있어요', brain: BRAIN_LABEL.hard,   level: '03' },
 ];
 
-export default function StartScreen({ onStart }) {
+export default function StartScreen({ onStart, onPuzzle }) {
   const [mode, setMode] = useState(null);
   // docs/spec/streak.md §4-1 — 진입 시 스트릭 노출
   const streaks = useMemo(() => computeStreaks(loadRecords()), []);
+  // docs/spec/puzzle.md §8 — 오늘의 퍼즐 카드
+  const puzzleNo = useMemo(() => puzzleNumber(), []);
+  const puzzleDone = useMemo(() => todayResult(), []);
 
   return (
     <div className="start-screen">
@@ -48,6 +52,27 @@ export default function StartScreen({ onStart }) {
 
       <main className="start-main">
         <StreakBanner streaks={streaks} />
+
+        {/* 오늘의 퍼즐 — docs/spec/puzzle.md §8 */}
+        {PUZZLE_COUNT > 0 && !mode && (
+          <button className="puzzle-card" onClick={onPuzzle}>
+            <div className="puzzle-card-text">
+              <span className="puzzle-card-title">
+                오늘의 퍼즐
+                <span className="puzzle-card-no">#{puzzleNo}</span>
+              </span>
+              <span className="puzzle-card-desc">
+                {puzzleDone
+                  ? (puzzleDone.solved ? `${puzzleDone.attempts}번째 시도에 성공` : '오늘은 실패 — 결과 보기')
+                  : '이기는 한 수를 찾아보세요'}
+              </span>
+            </div>
+            <span className={`puzzle-card-state${puzzleDone ? (puzzleDone.solved ? ' puzzle-card-state--ok' : ' puzzle-card-state--no') : ''}`}>
+              {puzzleDone ? (puzzleDone.solved ? '완료' : '실패') : '도전'}
+            </span>
+          </button>
+        )}
+
         {!mode ? (
           <>
             <p className="start-section-label">모드 선택</p>

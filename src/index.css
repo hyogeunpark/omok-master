@@ -196,6 +196,124 @@ body {
   white-space: nowrap;
 }
 
+/* ─────────────────────────────────────
+   데일리 퍼즐 (docs/spec/puzzle.md)
+───────────────────────────────────── */
+.puzzle-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid var(--cpu-border);
+  border-radius: 12px;
+  background: linear-gradient(180deg, var(--cpu-glow), transparent);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  flex: 0 0 auto;
+  transition: border-color 0.15s, background 0.15s;
+}
+.puzzle-card:hover { border-color: var(--cpu); }
+.puzzle-card:focus-visible { outline: 2px solid var(--cpu); outline-offset: 2px; }
+
+.puzzle-card-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+
+.puzzle-card-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--on-surface);
+}
+
+.puzzle-card-no {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--cpu);
+  border: 1px solid var(--cpu-border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.puzzle-card-desc { font-size: 0.76rem; color: var(--on-surface-dim); }
+
+.puzzle-card-state {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--cpu);
+  border: 1px solid var(--cpu-border);
+  background: var(--cpu-glow);
+  border-radius: 20px;
+  padding: 4px 12px;
+}
+.puzzle-card-state--ok {
+  color: var(--accent);
+  border-color: var(--accent-border);
+  background: var(--accent-glow);
+}
+.puzzle-card-state--no {
+  color: var(--on-surface-dim);
+  border-color: var(--outline);
+  background: var(--surface-low);
+}
+
+/* 퍼즐 화면 상태 */
+.puzzle-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--outline);
+  border-radius: 9px;
+  background: var(--surface-low);
+}
+
+.puzzle-attempts {
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  letter-spacing: 0.12em;
+  color: var(--cpu);
+  flex-shrink: 0;
+}
+
+.puzzle-msg { font-size: 0.78rem; color: var(--on-surface-dim); }
+
+.puzzle-result {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 11px 13px;
+  border-radius: 9px;
+  border: 1px solid var(--outline);
+  background: var(--surface-low);
+}
+.puzzle-result--win {
+  border-color: var(--accent-border);
+  background: linear-gradient(180deg, var(--accent-glow), transparent);
+}
+
+.puzzle-result-main { font-size: 0.92rem; font-weight: 600; color: var(--on-surface); }
+.puzzle-result--win .puzzle-result-main { color: var(--accent); }
+.puzzle-result-sub { font-size: 0.72rem; color: var(--on-surface-dim); }
+
+.puzzle-share-fallback {
+  width: 100%;
+  min-height: 82px;
+  padding: 9px 11px;
+  border: 1px solid var(--outline);
+  border-radius: 9px;
+  background: var(--surface-low);
+  color: var(--on-surface);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  resize: none;
+}
+
 /* 기보 탭 요약 바 (§4-3) */
 .streak-bar {
   display: flex;
