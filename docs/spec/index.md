@@ -14,3 +14,4 @@
 | [ai-arena.md](ai-arena.md) | AI 대전(Arena) — 두뇌 자동 대전 하네스, 승률 집계, 라운드로빈 |
 | [timer.md](timer.md) | Fischer 클록 — 시간 프리셋, UI, 시간 초과 처리 |
 | [nav.md](nav.md) | 바텀 네비게이션 — 4탭 구성, 규칙/기보/프로필 화면 스펙 |
+| [streak.md](streak.md) | 스트릭/진행감 — 출석·연승 지표 정의, 노출 위치(리텐션) |
