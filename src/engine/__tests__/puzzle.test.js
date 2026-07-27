@@ -62,6 +62,45 @@ describe('날짜 → 문제 선택 (§4)', () => {
   });
 });
 
+describe('이미 푼 문제 대체 (§4-1)', () => {
+  const seedLog = (o) => localStorageMock.setItem('omok_puzzles', JSON.stringify(o));
+  const D = new Date('2026-08-01T09:00:00');
+
+  it('푼 적 없으면 날짜 배정 문제를 그대로 낸다', () => {
+    const assigned = puzzleByNumber(puzzleNumber(D));
+    expect(todayPuzzle(D).id).toBe(assigned.id);
+  });
+
+  it('배정 문제를 이미 풀었으면 다른(안 푼) 문제로 대체한다', () => {
+    const assigned = puzzleByNumber(puzzleNumber(D));
+    seedLog({ '2026-07-01': { solved: true, attempts: 1, id: assigned.id } });
+    const shown = todayPuzzle(D);
+    expect(shown.id).not.toBe(assigned.id);
+  });
+
+  it('대체는 결정적이다 — 같은 날 다시 열어도 같은 문제', () => {
+    const assigned = puzzleByNumber(puzzleNumber(D));
+    seedLog({ '2026-07-01': { solved: true, attempts: 1, id: assigned.id } });
+    expect(todayPuzzle(D).id).toBe(todayPuzzle(D).id);
+  });
+
+  it('전부 푼 경우에는 날짜 배정 문제를 그대로 낸다', () => {
+    const log = {};
+    for (let n = 1; n <= PUZZLE_COUNT; n++) {
+      log[`2020-01-${String(n % 28 + 1).padStart(2, '0')}-${n}`] =
+        { solved: true, attempts: 1, id: puzzleByNumber(n).id };
+    }
+    seedLog(log);
+    expect(todayPuzzle(D).id).toBe(puzzleByNumber(puzzleNumber(D)).id);
+  });
+
+  it('id가 없는 기존 기록은 대체 판정에서 무시한다 (하위 호환)', () => {
+    seedLog({ '2026-07-01': { solved: true, attempts: 1 } }); // id 없음
+    const assigned = puzzleByNumber(puzzleNumber(D));
+    expect(todayPuzzle(D).id).toBe(assigned.id);
+  });
+});
+
 describe('정답 판정 (§5)', () => {
   it('정답 좌표를 인정하고, 그 외는 오답이다', () => {
     const p = puzzleByNumber(1);

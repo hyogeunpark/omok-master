@@ -1,0 +1,78 @@
+# docs/spec/puzzle.md §3-4 — 문제은행 자동 확장
+#
+# main에 직접 push하지 않고 PR을 연다.
+#  1) GITHUB_TOKEN으로 만든 push는 배포 워크플로를 트리거하지 않는다.
+#  2) 기계 필터를 통과해도 퍼즐로 부적절한 문제가 섞일 수 있어 사람의 검수가 필요하다.
+name: Puzzle Bank
+
+on:
+  schedule:
+    - cron: '0 18 1 * *' # 매월 1일 03:00 KST (UTC 18:00 전날)
+  workflow_dispatch:
+    inputs:
+      games:
+        description: '생성에 사용할 대국 수'
+        required: false
+        default: '120'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: puzzle-bank
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # 시드를 매번 바꿔야 새 국면이 나온다 (같으면 전부 중복 제거됨)
+      - name: Generate puzzles (append)
+        id: gen
+        run: |
+          node scripts/puzzles.mjs \
+            --games "${{ inputs.games || 120 }}" \
+            --seed "${{ github.run_number }}$(date -u +%m%d)"
+
+      # 문제은행이 커져도 앱이 깨지지 않는지 확인 (정답 유효성 전수 검증 포함)
+      - name: Verify
+        if: steps.gen.outputs.added != '0'
+        run: |
+          pnpm test
+          pnpm build
+
+      - name: Render samples for review
+        if: steps.gen.outputs.added != '0'
+        run: node scripts/puzzlePreview.mjs --last "${{ steps.gen.outputs.added }}" --max 5 > /tmp/samples.txt
+
+      - name: Open pull request
+        if: steps.gen.outputs.added != '0'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/puzzle-bank
+          base: main
+          commit-message: |
+            chore: 문제은행 ${{ steps.gen.outputs.added }}문제 추가 (총 ${{ steps.gen.outputs.total }})
+          title: 'chore: 문제은행 +${{ steps.gen.outputs.added }} (총 ${{ steps.gen.outputs.total }})'
+          body-path: /tmp/samples.txt
+          delete-branch: true
+          add-paths: src/puzzles/bank.json
+
+      - name: No new puzzles
+        if: steps.gen.outputs.added == '0'
+        run: echo "중복만 나와 새 문제가 없습니다. PR을 만들지 않습니다."

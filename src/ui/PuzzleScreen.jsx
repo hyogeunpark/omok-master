@@ -50,7 +50,7 @@ export default function PuzzleScreen({ onExit }) {
     setPlaced({ row, col }); // §5 고른 자리에 바로 놓아 보여준다
 
     if (isSolution(puzzle, row, col)) {
-      const r = { solved: true, attempts: n };
+      const r = { solved: true, attempts: n, id: puzzle.id };
       recordResult(r);
       setResult(r);
       setStreak(puzzleStreak(loadPuzzleLog()).current);
@@ -62,7 +62,7 @@ export default function PuzzleScreen({ onExit }) {
     setHint(isForbidden(board0, row, col, 'B') ? '금수 자리입니다' : null);
 
     if (n >= MAX_ATTEMPTS) {
-      const r = { solved: false, attempts: n };
+      const r = { solved: false, attempts: n, id: puzzle.id };
       recordResult(r);
       setResult(r);
     }
