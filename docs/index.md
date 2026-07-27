@@ -9,6 +9,7 @@
 
 - **제품**: CPU와 1:1로 대결하는 오목(Gomoku) 게임.
 - **목표 규칙**: 렌주 룰(흑 금수) + **타라구치-10(Taraguchi-10)** 오프닝(스왑) 규칙.
+- **대국 모드**: 캐주얼용 **빠른 대국**(오프닝 생략, 금수 유지)과 **정석 렌주**(오프닝 적용) 2종. [spec/game-modes.md](spec/game-modes.md) 참조.
 - **플랫폼**: 웹 우선(React) → PWA 설치 → 추후 Capacitor 네이티브화.
 - **백엔드**: 없음. 모든 로직은 클라이언트에서 실행. 서버/계정/온라인 대전 없음.
 - **방식**: 단계적 개발(Phase 1 → 2 → 3). 각 단계는 이전 단계 코드를 재사용하고 그 위에 규칙을 얹는다.
@@ -17,26 +18,11 @@
 
 ## 2. 문서 맵
 
-**기능 스펙** `docs/spec/` (기능 추가·변경 시 이 문서를 먼저 수정):
-
-| 문서 | 내용 |
-|------|------|
-| `index.md` (이 문서) | 개요, 공통 규칙, 비기능 요구사항, 용어집 |
-| `spec/forbidden.md` | 렌주 금수 규칙 (FR-6, FR-2′) |
-| `spec/opening.md` | 타라구치-10 오프닝 절차 (FR-7, FR-7a~c) |
-| `spec/swap.md` | 스왑 UI/UX 세부 규칙 (FR-7a) |
-| `spec/ai.md` | CPU AI — 알고리즘, 난이도 파라미터, 평가 함수 점수표 |
-| `spec/ai-player.md` | AiPlayer 인터페이스 — Strategy 패턴, 팩토리, 구현체 정의 |
-| `spec/timer.md` | Fischer 클록 — 시간 프리셋, UI, 시간 초과 처리 |
-| `spec/nav.md` | 바텀 네비게이션 — 4탭 구성, 규칙/기보/프로필 화면 스펙 |
-
-**개발 이력** `docs/history/` (참고용):
-
-| 문서 | 내용 |
-|------|------|
-| `history/phase-1.md` | 자유 오목 개발 이력 |
-| `history/phase-2.md` | 렌주 금수 개발 이력 |
-| `history/phase-3.md` | 타라구치-10 오프닝 개발 이력 |
+| 디렉토리 | 인덱스 | 내용 |
+|----------|--------|------|
+| `docs/spec/` | [spec/index.md](spec/index.md) | 기능 스펙 — 기능 추가·변경 시 코드보다 먼저 수정 |
+| `docs/history/` | [history/index.md](history/index.md) | Phase별 개발 이력 (참고용) |
+| `docs/decisions/` | [decisions/index.md](decisions/index.md) | 기술·설계·인프라 결정 사항 (ADR) |
 
 ---
 
@@ -78,6 +64,8 @@
 - 온라인 멀티플레이·매치메이킹·계정/로그인.
 - 서버 기반 랭킹/기보 클라우드 저장.
 - 광고/결제(추후 별도 검토).
+
+> 추후 도입이 결정된 항목은 [decisions/index.md](decisions/index.md) 참조.
 
 ---
 

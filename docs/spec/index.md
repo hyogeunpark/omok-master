@@ -4,6 +4,7 @@
 
 | 문서 | 내용 |
 |------|------|
+| [game-modes.md](game-modes.md) | 게임 모드 — 빠른 대국(오프닝 생략) / 정석 렌주, 진입 흐름 |
 | [forbidden.md](forbidden.md) | 렌주 금수 규칙 (FR-6, FR-2′) |
 | [opening.md](opening.md) | 타라구치-10 오프닝 절차 (FR-7, FR-7a~c) |
 | [swap.md](swap.md) | 스왑 UI/UX 세부 규칙 (FR-7a) |

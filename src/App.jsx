@@ -23,6 +23,7 @@ export default function App() {
       <Game
         player={player}
         difficulty={gameConfig.difficulty}
+        mode={gameConfig.mode}
         onExit={() => setGameConfig(null)}
       />
     );
@@ -30,7 +31,7 @@ export default function App() {
 
   return (
     <>
-      {activeTab === 'play'    && <StartScreen onStart={(d) => setGameConfig({ difficulty: d })} />}
+      {activeTab === 'play'    && <StartScreen onStart={(m, d) => setGameConfig({ mode: m, difficulty: d })} />}
       {activeTab === 'rules'   && <RulesScreen />}
       {activeTab === 'records' && <RecordsScreen />}
       {activeTab === 'profile' && <ProfileScreen />}

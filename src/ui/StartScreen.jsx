@@ -1,4 +1,24 @@
+// docs/spec/game-modes.md §3 — 모드 선택 → 난이도 선택 2단계
+import { useState } from 'react';
 import { BRAIN_LABEL } from './brainLabel.js';
+
+// docs/spec/game-modes.md §2 모드 정의
+const MODES = [
+  {
+    key: 'quick',
+    label: '빠른 대국',
+    desc: '바로 시작하는 한 판',
+    rule: '오프닝 없음 · 금수 적용',
+    recommended: true,
+  },
+  {
+    key: 'renju',
+    label: '정석 렌주',
+    desc: '타라구치-10 오프닝부터',
+    rule: '오프닝 있음 · 금수 적용',
+    recommended: false,
+  },
+];
 
 // brain: CPU 두뇌(탐색 방식) 표시 — docs/spec/ai.md §2 난이도 정의 기준
 const DIFFICULTIES = [
@@ -8,6 +28,8 @@ const DIFFICULTIES = [
 ];
 
 export default function StartScreen({ onStart }) {
+  const [mode, setMode] = useState(null);
+
   return (
     <div className="start-screen">
       <header className="start-header">
@@ -20,24 +42,59 @@ export default function StartScreen({ onStart }) {
       </header>
 
       <main className="start-main">
-        <p className="start-section-label">난이도 선택</p>
-        <div className="difficulty-list">
-          {DIFFICULTIES.map(({ key, label, desc, brain, level }) => (
-            <button
-              key={key}
-              className="difficulty-card"
-              onClick={() => onStart(key)}
-            >
-              <span className="difficulty-level">{level}</span>
-              <div className="difficulty-text">
-                <span className="difficulty-label">{label}</span>
-                <span className="difficulty-desc">{desc}</span>
-                <span className="difficulty-brain">{brain}</span>
-              </div>
-              <span className="difficulty-arrow">→</span>
-            </button>
-          ))}
-        </div>
+        {!mode ? (
+          <>
+            <p className="start-section-label">모드 선택</p>
+            <div className="difficulty-list">
+              {MODES.map(({ key, label, desc, rule, recommended }) => (
+                <button
+                  key={key}
+                  className={`difficulty-card${recommended ? ' difficulty-card--rec' : ''}`}
+                  onClick={() => setMode(key)}
+                >
+                  <div className="difficulty-text">
+                    <span className="difficulty-label">
+                      {label}
+                      {recommended && <span className="mode-rec">추천</span>}
+                    </span>
+                    <span className="difficulty-desc">{desc}</span>
+                    <span className="difficulty-brain">{rule}</span>
+                  </div>
+                  <span className="difficulty-arrow">→</span>
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="start-section-head">
+              <button className="btn-back" onClick={() => setMode(null)}>← 모드</button>
+              <p className="start-section-label">
+                난이도 선택
+                <span className="start-mode-tag">
+                  {MODES.find((m) => m.key === mode).label}
+                </span>
+              </p>
+            </div>
+            <div className="difficulty-list">
+              {DIFFICULTIES.map(({ key, label, desc, brain, level }) => (
+                <button
+                  key={key}
+                  className="difficulty-card"
+                  onClick={() => onStart(mode, key)}
+                >
+                  <span className="difficulty-level">{level}</span>
+                  <div className="difficulty-text">
+                    <span className="difficulty-label">{label}</span>
+                    <span className="difficulty-desc">{desc}</span>
+                    <span className="difficulty-brain">{brain}</span>
+                  </div>
+                  <span className="difficulty-arrow">→</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </main>
 
       <footer className="start-footer">
@@ -47,8 +104,12 @@ export default function StartScreen({ onStart }) {
           <span>5목 연속 승리</span>
           <span>·</span>
           <span>렌주 금수</span>
-          <span>·</span>
-          <span>타라구치-10 오프닝</span>
+          {mode !== 'quick' && (
+            <>
+              <span>·</span>
+              <span>타라구치-10 오프닝</span>
+            </>
+          )}
         </div>
       </footer>
 
