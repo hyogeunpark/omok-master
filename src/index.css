@@ -109,6 +109,175 @@ body {
   gap: 10px;
 }
 
+/* ─────────────────────────────────────
+   스트릭 (docs/spec/streak.md §4)
+───────────────────────────────────── */
+.streak-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 14px;
+  margin-bottom: 4px;
+  border: 1px solid var(--accent-border);
+  border-radius: 11px;
+  background: linear-gradient(180deg, var(--accent-glow), transparent);
+}
+
+.streak-main {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.streak-flame {
+  color: var(--accent);
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.streak-days {
+  font-family: var(--mono);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.streak-unit {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--on-surface);
+}
+
+.streak-idle-text {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--on-surface);
+}
+
+.streak-banner--idle {
+  border-color: var(--outline);
+  background: var(--surface-low);
+}
+.streak-banner--idle .streak-flame { color: var(--on-surface-dim); }
+
+.streak-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.streak-sub {
+  font-size: 0.66rem;
+  color: var(--on-surface-dim);
+  white-space: nowrap;
+}
+
+.streak-nudge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.streak-win {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--cpu);
+  border: 1px solid var(--cpu-border);
+  background: var(--cpu-glow);
+  border-radius: 4px;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+
+/* 기보 탭 요약 바 (§4-3) */
+.streak-bar {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  border: 1px solid var(--outline);
+  border-radius: 11px;
+  background: var(--surface-low);
+}
+
+.streak-bar-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.streak-bar-label {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--on-surface-dim);
+}
+
+.streak-bar-value {
+  font-family: var(--mono);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.streak-bar-value em {
+  font-style: normal;
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--on-surface-dim);
+  margin-left: 3px;
+}
+
+.streak-bar-best {
+  font-size: 0.62rem;
+  color: var(--on-surface-dim);
+}
+
+.streak-bar-sep {
+  width: 1px;
+  background: var(--outline);
+  flex-shrink: 0;
+}
+
+/* 결과 화면 (§4-2) */
+.result-streaks {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.result-streak {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--on-surface-dim);
+  border: 1px solid var(--outline);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.result-streak--win {
+  color: var(--accent);
+  border-color: var(--accent-border);
+  background: var(--accent-glow);
+}
+
 .start-section-label {
   font-size: 0.65rem;
   font-weight: 600;

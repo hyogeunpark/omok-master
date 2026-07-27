@@ -1,6 +1,8 @@
 // docs/spec/nav.md §5 기보 탭
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { loadRecords, clearRecords } from '../engine/records.js';
+import { computeStreaks } from '../engine/streak.js';
+import StreakBanner from './StreakBanner.jsx';
 
 const DIFFICULTY_LABEL = { easy: '쉬움', normal: '보통', hard: '어려움' };
 const COLOR_LABEL      = { B: '흑', W: '백' };
@@ -14,6 +16,8 @@ function formatDate(iso) {
 
 export default function RecordsScreen() {
   const [records, setRecords] = useState(() => loadRecords());
+  // docs/spec/streak.md §4-3 — 목록 위 요약 바
+  const streaks = useMemo(() => computeStreaks(records), [records]);
 
   const handleClear = () => {
     clearRecords();
@@ -36,6 +40,8 @@ export default function RecordsScreen() {
             <p>아직 대국 기록이 없습니다</p>
           </div>
         ) : (
+          <>
+          <StreakBanner streaks={streaks} variant="bar" />
           <div className="records-list">
             {records.map((r) => (
               <div key={r.id} className={`record-card record-card--${r.result}`}>
@@ -48,6 +54,7 @@ export default function RecordsScreen() {
               </div>
             ))}
           </div>
+          </>
         )}
       </div>
     </div>
