@@ -1,5 +1,5 @@
 // docs/spec/puzzle.md §8 — 데일리 퍼즐 화면
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import Board from './Board.jsx';
 import { isForbidden } from '../engine/forbidden.js';
 import {
@@ -18,39 +18,47 @@ export default function PuzzleScreen({ onExit }) {
   // §5 하루 한 번 — 이미 푼 날이면 결과부터 보여준다
   const [result, setResult]   = useState(() => todayResult());
   const [attempts, setAttempts] = useState(0);
-  const [wrongAt, setWrongAt] = useState(null);   // 마지막 오답 자리
+  const [placed, setPlaced]   = useState(null);   // §5 고른 자리에 놓아 보여주는 돌
   const [hint, setHint]       = useState(null);   // 오답 사유(금수 등)
   const [copied, setCopied]   = useState(false);
+  const revertRef = useRef(null);                 // 오답 돌 되돌리기 타이머
+
+  useEffect(() => () => clearTimeout(revertRef.current), []);
 
   // 스트릭은 기록이 바뀔 때만 갱신한다(localStorage를 매 렌더 읽지 않도록)
   const [streak, setStreak] = useState(() => puzzleStreak(loadPuzzleLog()).current);
   const done = result !== null;
 
-  // 정답 공개용 보드 (실패했거나 이미 푼 뒤)
+  // §5 고른 돌을 얹고, 실패/재진입 시에는 정답을 공개한다
   const board = useMemo(() => {
-    if (!done || !puzzle) return board0;
+    if (!puzzle) return board0;
+    const needsOverlay = placed || (done && !result.solved);
+    if (!needsOverlay) return board0;
+
     const b = board0.map(r => [...r]);
-    if (!result.solved) for (const [r, c] of puzzle.solution) b[r][c] = 'B';
+    if (done && !result.solved) for (const [r, c] of puzzle.solution) b[r][c] = 'B';
+    if (placed) b[placed.row][placed.col] = 'B';
     return b;
-  }, [done, result, board0, puzzle]);
+  }, [done, result, board0, puzzle, placed]);
 
   const handlePlace = useCallback((row, col) => {
     if (done || !puzzle) return;
+    clearTimeout(revertRef.current);
+
     const n = attempts + 1;
     setAttempts(n);
+    setPlaced({ row, col }); // §5 고른 자리에 바로 놓아 보여준다
 
     if (isSolution(puzzle, row, col)) {
       const r = { solved: true, attempts: n };
       recordResult(r);
       setResult(r);
       setStreak(puzzleStreak(loadPuzzleLog()).current);
-      setWrongAt(null);
       setHint(null);
-      return;
+      return; // 정답 돌은 그대로 남긴다
     }
 
     // 오답 — 금수면 알려준다 (§5 학습 효과)
-    setWrongAt({ row, col });
     setHint(isForbidden(board0, row, col, 'B') ? '금수 자리입니다' : null);
 
     if (n >= MAX_ATTEMPTS) {
@@ -58,6 +66,8 @@ export default function PuzzleScreen({ onExit }) {
       recordResult(r);
       setResult(r);
     }
+    // §5 틀린 돌은 잠시 보여준 뒤 되돌린다
+    revertRef.current = setTimeout(() => setPlaced(null), 700);
   }, [done, puzzle, attempts, board0]);
 
   const handleShare = useCallback(async () => {
@@ -89,7 +99,7 @@ export default function PuzzleScreen({ onExit }) {
       <Board
         board={board}
         onPlace={handlePlace}
-        lastMove={wrongAt}
+        lastMove={placed}
         winningLine={null}
         disabled={done}
         forbiddenCells={[]}
